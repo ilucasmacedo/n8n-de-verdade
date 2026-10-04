@@ -1,0 +1,102 @@
+{
+  "id": "LEO99ErrorAlerta",
+  "name": "LEO - 99 - Error Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Avisos de erro\n\nOs outros workflows LEO apontam para este em **Settings → Error workflow**.\n\nEle só dispara em execuções automáticas (agendadas), não nas manuais. E precisa estar **publicado**.\n\nPróximo passo: depois do node de resumo, mandar o aviso por e-mail ou WhatsApp para quem a Leonela indicar.",
+        "height": 300,
+        "width": 640,
+        "color": 2
+      },
+      "id": "0b7079f1-a78d-4d25-8d2f-9fa861492903",
+      "name": "Nota - Erro",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "9d187859-84e2-4be4-80a5-b147c23afc68",
+      "name": "Quando um workflow falhar",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a00659e-5fa1-4d7e-8345-edd260511c80",
+              "name": "workflow",
+              "value": "={{ $json.workflow.name }}",
+              "type": "string"
+            },
+            {
+              "id": "cd96ae31-d673-4753-835b-8afc9e3a2c55",
+              "name": "nodeQueFalhou",
+              "value": "={{ $json.execution?.lastNodeExecuted ?? $json.trigger?.error?.node?.name }}",
+              "type": "string"
+            },
+            {
+              "id": "54cd73ea-f125-43a3-893a-f419b576c9a7",
+              "name": "mensagem",
+              "value": "={{ $json.execution?.error?.message ?? $json.trigger?.error?.message }}",
+              "type": "string"
+            },
+            {
+              "id": "36ab7754-abf5-4392-8265-2b921f0a2561",
+              "name": "horario",
+              "value": "={{ $now.setZone('America/Sao_Paulo').toFormat('dd/MM/yyyy HH:mm:ss') }}",
+              "type": "string"
+            },
+            {
+              "id": "7177ba6d-ad2d-46a9-8941-4b873d136e7c",
+              "name": "linkExecucao",
+              "value": "={{ $json.execution?.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aced1b89-61cd-4d00-8d66-32fcd0d4c26c",
+      "name": "Resumo do erro",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "Quando um workflow falhar": {
+      "main": [
+        [
+          {
+            "node": "Resumo do erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

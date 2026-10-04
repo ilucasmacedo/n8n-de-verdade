@@ -1,0 +1,403 @@
+{
+  "name": "Groner → Conta Azul | MVP - Venda Fechada",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "MANUAL - Teste",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg1",
+              "name": "groner_base_url",
+              "value": "https://gerasol.api.groner.app",
+              "type": "string"
+            },
+            {
+              "id": "cfg2",
+              "name": "groner_endpoint_vendas",
+              "value": "/api/Venda/DadosVendaPorPeriodo",
+              "type": "string"
+            },
+            {
+              "id": "cfg3",
+              "name": "conta_azul_base_url",
+              "value": "https://api-v2.contaazul.com",
+              "type": "string"
+            },
+            {
+              "id": "cfg4",
+              "name": "conta_azul_endpoint_venda",
+              "value": "/v1/venda",
+              "type": "string"
+            },
+            {
+              "id": "cfg5",
+              "name": "status_groner_fechada",
+              "value": "FECHADA",
+              "type": "string"
+            },
+            {
+              "id": "cfg6",
+              "name": "modo_teste",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2",
+      "name": "CONFIG - Preencher depois",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -680,
+        0
+      ],
+      "notesInFlow": true,
+      "notes": "Tenant gerasol. status_groner_fechada=FECHADA e provisorio. modo_teste verdadeiro. Sem segredos."
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.groner_base_url + $json.groner_endpoint_vendas }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "dataInicio",
+              "value": "={{ $now.minus({ days: 1 }).startOf('day').toUTC().toISO({ suppressMilliseconds: true }) }}"
+            },
+            {
+              "name": "dataFim",
+              "value": "={{ $now.endOf('day').toUTC().toISO({ suppressMilliseconds: true }) }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "3",
+      "name": "GRONER - Buscar vendas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -430,
+        0
+      ],
+      "notesInFlow": true,
+      "notes": "DESATIVADO. Doc Groner secao 12.6: GET /api/Venda/DadosVendaPorPeriodo com dataInicio e dataFim. DataInicial/PageNumber do esqueleto antigo nao estao nesse curl. Credencial n8n Groner Token. Nao colocar token neste JSON.",
+      "disabled": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Groner Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.all();\n\nreturn input.map(item => {\n  const v = item.json;\n  return { json: {\n    gronerRaw: v,\n    gronerSaleId: v.id ?? v.Id ?? null,\n    status: v.status ?? v.Status ?? v.statusVenda ?? null,\n    saleNumber: v.numero ?? v.Numero ?? null,\n    saleDate: v.dataVenda ?? v.DataVenda ?? null,\n    customer: {\n      name: v.cliente?.nome ?? v.Cliente?.Nome ?? null,\n      document: v.cliente?.documento ?? v.Cliente?.Documento ?? null,\n      email: v.cliente?.email ?? v.Cliente?.Email ?? null,\n      phone: v.cliente?.celular ?? v.Cliente?.Celular ?? null\n    },\n    total: v.valorTotal ?? v.ValorTotal ?? v.total ?? v.Total ?? null,\n    installments: v.parcelas ?? v.Parcelas ?? [],\n    items: v.itens ?? v.Itens ?? v.items ?? []\n  }};\n});"
+      },
+      "id": "4",
+      "name": "NORMALIZAR - Venda Groner",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -170,
+        0
+      ],
+      "notesInFlow": true,
+      "notes": "Aproximacao de campos. Nao e o mapeamento definitivo sem um JSON real da API."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "if1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "={{ $('CONFIG - Preencher depois').item.json.status_groner_fechada }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5",
+      "name": "IF - Venda fechada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const v = $json;\n\nreturn [{ json: {\n  ...v,\n  contaAzulPayload: {\n    id_cliente: \"TODO-CONTA-AZUL-CLIENTE-ID\",\n    numero: Number(v.saleNumber || 0),\n    situacao: \"APROVADO\",\n    data_venda: v.saleDate ? String(v.saleDate).slice(0, 10) : new Date().toISOString().slice(0, 10),\n    observacoes: `Origem: Groner | Venda: ${v.gronerSaleId}`,\n    itens: (v.items || []).map((item, index) => ({\n      descricao: item.descricao ?? item.nome ?? `Item ${index + 1}`,\n      quantidade: Number(item.quantidade ?? item.qtd ?? 1),\n      valor: Number(item.valor ?? item.valorUnitario ?? 0),\n      id: \"TODO-CONTA-AZUL-PRODUTO-ID\"\n    }))\n  }\n}}];"
+      },
+      "id": "6",
+      "name": "MAPEAR - Conta Azul",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        330,
+        0
+      ],
+      "notesInFlow": true,
+      "notes": "Esqueleto. id_cliente e id do item continuam TODO. Nao validado na API da Conta Azul."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('CONFIG - Preencher depois').item.json.conta_azul_base_url + $('CONFIG - Preencher depois').item.json.conta_azul_endpoint_venda }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.contaAzulPayload) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api"
+      },
+      "id": "7",
+      "name": "CONTA AZUL - Criar venda",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        590,
+        0
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DESATIVADO. Nao cria venda. OAuth na credencial n8n Conta Azul OAuth2. Nao ativar sem tabela de groner_sale_id.",
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Conta Azul OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ok1",
+              "name": "integracao_status",
+              "value": "SUCESSO",
+              "type": "string"
+            },
+            {
+              "id": "ok2",
+              "name": "origem",
+              "value": "Groner",
+              "type": "string"
+            },
+            {
+              "id": "ok3",
+              "name": "destino",
+              "value": "Conta Azul",
+              "type": "string"
+            },
+            {
+              "id": "ok4",
+              "name": "mensagem",
+              "value": "Venda enviada para a Conta Azul. Depois adicionaremos ID e controle de duplicidade.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "8",
+      "name": "SUCESSO - Registro",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        840,
+        0
+      ],
+      "disabled": true,
+      "notes": "DESATIVADO junto com o POST. No n8n, node desativado e pulado; se so o POST ficasse desativado, este node marcaria sucesso sem criar a venda.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "content": "## MVP da especificacao (nao e producao)\n\nTenant gerasol. Gatilho manual.\nGRONER - Buscar vendas desativado. Parametros da doc: dataInicio e dataFim.\nCONTA AZUL - Criar venda desativado. Credencial n8n, sem segredo neste JSON.\nSUCESSO - Registro desativado para nao marcar sucesso com o POST pulado.\nNao ha tabela de duplicidade.",
+        "height": 220,
+        "width": 520,
+        "color": 4
+      },
+      "id": "nota-mvp",
+      "name": "Nota - MVP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        -280
+      ]
+    }
+  ],
+  "connections": {
+    "MANUAL - Teste": {
+      "main": [
+        [
+          {
+            "node": "CONFIG - Preencher depois",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIG - Preencher depois": {
+      "main": [
+        [
+          {
+            "node": "GRONER - Buscar vendas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GRONER - Buscar vendas": {
+      "main": [
+        [
+          {
+            "node": "NORMALIZAR - Venda Groner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NORMALIZAR - Venda Groner": {
+      "main": [
+        [
+          {
+            "node": "IF - Venda fechada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Venda fechada?": {
+      "main": [
+        [
+          {
+            "node": "MAPEAR - Conta Azul",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "MAPEAR - Conta Azul": {
+      "main": [
+        [
+          {
+            "node": "CONTA AZUL - Criar venda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONTA AZUL - Criar venda": {
+      "main": [
+        [
+          {
+            "node": "SUCESSO - Registro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "GRONER - Buscar vendas": [
+      {
+        "json": {
+          "id": "12345",
+          "status": "FECHADA",
+          "numero": "987",
+          "dataVenda": "2026-10-03",
+          "cliente": {
+            "nome": "Cliente Exemplo",
+            "documento": "00000000000",
+            "email": "cliente@email.com",
+            "celular": "41999999999"
+          },
+          "valorTotal": 1500,
+          "parcelas": [],
+          "itens": [
+            {
+              "descricao": "Produto",
+              "quantidade": 1,
+              "valor": 1500
+            }
+          ]
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7e515b08-28b9-40fd-91cd-1db690d68cbf",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [],
+  "id": "LEOMvpVendaGron",
+  "description": "Esqueleto MVP da especificacao Groner para Conta Azul. Chamada real da Conta Azul desativada. Groner usa pin de exemplo e nao chama a API enquanto o pin existir. Credenciais nas variaveis GRONER_* e CONTA_AZUL_* do .env."
+}

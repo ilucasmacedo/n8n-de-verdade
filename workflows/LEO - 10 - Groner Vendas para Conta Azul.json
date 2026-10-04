@@ -1,0 +1,919 @@
+{
+  "id": "LEO10VendasCAzul",
+  "name": "LEO - 10 - Groner Vendas → Conta Azul",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Venda fechada no Groner vai para a Conta Azul\n\nA especificacao ja define o sentido: origem Groner, destino Conta Azul.\nConsulta prevista: GET `/api/Venda/DadosVendaPorPeriodo` com `dataInicio` e `dataFim`.\n\nChamadas externas deste rascunho estao desativadas.\nNao criar venda sem a tabela de duplicidade. O status `FECHADA` e provisorio.\nParcelas e financeiro nao substituem o POST `/v1/venda` e continuam fora do caminho ate a API ser validada.",
+        "height": 300,
+        "width": 700,
+        "color": 3
+      },
+      "id": "9904a431-1e9c-42f6-8e94-757808d703d0",
+      "name": "Nota - Visão geral",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 1. Buscar vendas na Groner\n\nGET `/api/Venda/DadosVendaPorPeriodo`.\nA documentacao da Groner (secao 12.6) mostra `dataInicio` e `dataFim`.\nEsse curl nao mostra pagina. A paginacao deste endpoint continua pendente.\nNode desativado ate existir um JSON real.",
+        "height": 220,
+        "width": 700,
+        "color": 7
+      },
+      "id": "0c9b016e-aad9-4bb3-8323-20ca39d2f103",
+      "name": "Nota - Bloco 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 2. Normalizar\n\nO Code node produz a interface interna da especificacao: `gronerSaleId`, `status`, `saleNumber`, `saleDate`, `customer`, `total`, `installments`, `items`.\nOs nomes reais da API ainda nao foram confirmados. O IF seguinte usa `status_groner_fechada` da config.",
+        "height": 220,
+        "width": 700,
+        "color": 7
+      },
+      "id": "239b958d-a262-49a3-8801-3afdec2e89e2",
+      "name": "Nota - Bloco 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 3. Cliente na Conta Azul\n\nProcura o cliente pelo documento (GET `/v1/pessoas?documentos=`). Se existir, usa o id. Se não, cria (POST `/v1/pessoas`, **desativado**).\n\nCONFIRMAR: se o filtro aceita o documento só com números (a resposta mostra com pontuação).",
+        "height": 220,
+        "width": 900,
+        "color": 7
+      },
+      "id": "1edb124d-d60b-4cdd-8bc1-2d29e26e513a",
+      "name": "Nota - Bloco 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1860,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 4. Criar a venda, depois o financeiro\n\nO caminho previsto e POST `/v1/venda`, desativado.\nConta a receber nao fica em paralelo: ligar os dois ao mesmo tempo duplicaria o valor.\nO financeiro so entra depois de validar a API e com a idempotencia gravada.",
+        "height": 220,
+        "width": 700,
+        "color": 7
+      },
+      "id": "c1f0a934-5ae2-40a9-814f-bdf107a55fde",
+      "name": "Nota - Bloco 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2780,
+        -60
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ab72a5c0-0015-46e1-88b9-632178557b49",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "74bdde3e-4c21-4330-8418-7f242a3e63e1",
+      "name": "Agendamento (desativado)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        440
+      ],
+      "disabled": true,
+      "notes": "Ativar só quando o fluxo estiver aprovado. Precisa publicar o workflow.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "LEO00ConfigGeral",
+          "mode": "list",
+          "cachedResultName": "LEO - 00 - Config"
+        },
+        "options": {}
+      },
+      "id": "dd20742e-597e-46ee-8d4e-0b4ee080b9b4",
+      "name": "Config",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        340
+      ],
+      "notes": "Busca a configuração no workflow \"LEO - 00 - Config\". Para trocar de conta Groner, mude SÓ lá.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.baseUrl }}/Venda/DadosVendaPorPeriodo",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "dataInicio",
+              "value": "={{ $('Config').first().json.dataInicio }}"
+            },
+            {
+              "name": "dataFim",
+              "value": "={{ $('Config').first().json.dataFim }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "f00dad0c-91ab-4242-80f1-d3a6a59af915",
+      "name": "Groner - Listar vendas do período",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        340
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Groner Token"
+        }
+      },
+      "disabled": true,
+      "notes": "DESATIVADO. Endpoint da especificacao e da doc 12.6. Sem paginacao inventada.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "id": "e580d721-4c8d-4da3-88b9-bdc8da8ab9bc",
+      "name": "Separar vendas",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        720,
+        340
+      ],
+      "notes": "Cada página tem uma lista \"items\". Aqui cada venda vira um item separado.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.baseUrl }}/Projeto/{{ $json.projetoId ?? $json.projeto?.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c9c1b314-31b8-448f-877d-ddc452289802",
+      "name": "Groner - Buscar Projeto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        340
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Groner Token"
+        }
+      },
+      "disabled": true,
+      "notes": "DESATIVADO. Chamada externa. So ligar depois do JSON real e da credencial.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.baseUrl }}/Lead/{{ $json.leadId ?? $json.lead?.id ?? $('Separar vendas').item.json.leadId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4cfabbb-9a33-4e3c-807a-d8aff58d8d53",
+      "name": "Groner - Buscar Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        340
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Groner Token"
+        }
+      },
+      "disabled": true,
+      "notes": "DESATIVADO. Chamada externa. So ligar depois do JSON real e da credencial.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const venda = $('Separar vendas').item.json;\nconst projeto = $('Groner - Buscar Projeto').item.json;\nconst lead = $json;\n\nconst texto = (v) => (v ?? '').toString().trim();\nconst soDigitos = (v) => texto(v).replace(/\\D/g, '');\nconst documento = soDigitos(\n  lead.documento ?? lead.Documento ?? venda.cliente?.documento ?? venda.Cliente?.Documento\n);\nconst gronerSaleId = String(venda.id ?? venda.Id ?? '');\nconst status = venda.status ?? venda.Status ?? venda.statusVenda ?? null;\n\nreturn {\n  json: {\n    gronerSaleId,\n    status,\n    saleNumber: venda.numero ?? venda.Numero ?? gronerSaleId,\n    saleDate: texto(venda.dataVenda ?? venda.DataVenda ?? venda.dataCadastro).slice(0, 10),\n    customer: {\n      name: texto(lead.nome ?? lead.Nome ?? venda.cliente?.nome),\n      document: documento,\n      email: texto(lead.email ?? lead.Email).toLowerCase(),\n      phone: soDigitos(lead.celular ?? lead.Celular),\n    },\n    total: Number(venda.valorTotal ?? venda.ValorTotal ?? venda.total ?? 0),\n    installments: venda.parcelas ?? venda.Parcelas ?? [],\n    items: venda.itens ?? venda.Itens ?? venda.items ?? [],\n    idempotencyKey: gronerSaleId ? 'GRONER:' + gronerSaleId : null,\n    vendaId: venda.id ?? venda.Id ?? null,\n    projetoId: projeto.id ?? venda.projetoId,\n    leadId: lead.id,\n    nome: texto(lead.nome ?? lead.Nome),\n    email: texto(lead.email ?? lead.Email).toLowerCase(),\n    celular: soDigitos(lead.celular ?? lead.Celular),\n    documento,\n    tipoPessoa: documento.length === 14 ? 'Jurídica' : 'Física',\n    cpf: documento.length === 11 ? documento : '',\n    cnpj: documento.length === 14 ? documento : '',\n    cidade: texto(lead.cidade),\n    uf: texto(lead.uf).toUpperCase(),\n    cep: soDigitos(lead.cep),\n    valorTotal: Number(venda.valorTotal ?? venda.ValorTotal ?? 0),\n    descricao: texto(venda.descricao) || ('Venda Groner #' + gronerSaleId),\n    dataVenda: texto(venda.dataVenda ?? venda.DataVenda ?? venda.dataCadastro).slice(0, 10) || $now.toFormat('yyyy-MM-dd'),\n  },\n};"
+      },
+      "id": "6220b03d-23de-47fd-8790-9282d5cc0745",
+      "name": "Normalizar dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a3dbde77-8a1f-4db7-8361-f29f503c4f98",
+              "leftValue": "={{ $json.documento.length }}",
+              "rightValue": 11,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "55b592cb-f3ef-4faa-842c-bec344c4f03f",
+      "name": "Tem CPF/CNPJ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1920,
+        340
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "3401d70b-ede8-4ddd-821a-2e2cb7f22517",
+      "name": "Sem documento (revisar na Groner)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.contaAzulBaseUrl }}/v1/pessoas",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "documentos",
+              "value": "={{ $json.documento }}"
+            },
+            {
+              "name": "pagina",
+              "value": "1"
+            },
+            {
+              "name": "tamanho_pagina",
+              "value": "10"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "016b6dd3-1e6d-4f52-83ac-7b327f9d2e8f",
+      "name": "Conta Azul - Buscar cliente por documento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        240
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Conta Azul OAuth2"
+        }
+      },
+      "disabled": true,
+      "notes": "DESATIVADO. Chamada externa. So ligar depois do JSON real e da credencial.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cec7546b-1231-4349-86bd-0a482bdd0009",
+              "leftValue": "={{ ($json.items ?? []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "8d80801a-348e-48a5-8980-b04ebc82d84b",
+      "name": "Cliente já existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2400,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b6b725b7-074c-4ad9-8212-6df1466b2632",
+              "name": "idClienteContaAzul",
+              "value": "={{ $json.items[0].id }}",
+              "type": "string"
+            },
+            {
+              "id": "b26f616d-aaba-4dd9-8863-04b9103ec8a6",
+              "name": "origemCliente",
+              "value": "existente",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3ef3a20a-e981-4536-8801-1b50fcd8bc93",
+      "name": "Usar cliente existente",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2640,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.contaAzulBaseUrl }}/v1/pessoas",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  nome: $('Normalizar dados').item.json.nome,\n  tipo_pessoa: $('Normalizar dados').item.json.tipoPessoa,\n  cpf: $('Normalizar dados').item.json.cpf || undefined,\n  cnpj: $('Normalizar dados').item.json.cnpj || undefined,\n  email: $('Normalizar dados').item.json.email || undefined,\n  perfis: [{ tipo_perfil: 'Cliente' }]\n}) }}",
+        "options": {}
+      },
+      "id": "168f1607-9821-4d91-8ba7-5815e7e285d3",
+      "name": "Conta Azul - Criar cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        340
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Conta Azul OAuth2"
+        }
+      },
+      "disabled": true,
+      "notes": "DESATIVADO. Criar cliente so depois de buscar pelo documento e com a regra combinada.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bd0e796f-7010-442d-8772-ea32fc27f7cc",
+              "name": "idClienteContaAzul",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "77b3fbba-c95e-42a1-8b89-e9b907ec7c6e",
+              "name": "origemCliente",
+              "value": "criado",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "031f3235-bac2-4144-8936-3d4167359259",
+      "name": "Usar cliente criado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2880,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "29f39e70-54b8-4a09-8c86-6e8c6233e663",
+              "name": "idClienteContaAzul",
+              "value": "={{ $json.idClienteContaAzul }}",
+              "type": "string"
+            },
+            {
+              "id": "8803aa82-ec76-483f-8f00-09191629232e",
+              "name": "vendaId",
+              "value": "={{ $('Normalizar dados').item.json.vendaId }}",
+              "type": "string"
+            },
+            {
+              "id": "9da1bb9b-e0b1-4541-85c3-04a0e2d2ab34",
+              "name": "nome",
+              "value": "={{ $('Normalizar dados').item.json.nome }}",
+              "type": "string"
+            },
+            {
+              "id": "57b46cd7-5283-4e80-868c-bc1471c0c3d5",
+              "name": "valor",
+              "value": "={{ $('Normalizar dados').item.json.valorTotal }}",
+              "type": "number"
+            },
+            {
+              "id": "5d7e3507-be24-4ad7-80b7-bd95483a0ef5",
+              "name": "descricao",
+              "value": "={{ $('Normalizar dados').item.json.descricao }}",
+              "type": "string"
+            },
+            {
+              "id": "2556a7e4-0a5c-4149-85c3-c5de99b8b455",
+              "name": "dataCompetencia",
+              "value": "={{ $('Normalizar dados').item.json.dataVenda }}",
+              "type": "string"
+            },
+            {
+              "id": "099a3bef-469e-4a4f-8695-cbed784836a6",
+              "name": "dataVencimento",
+              "value": "={{ $('Normalizar dados').item.json.dataVenda }}",
+              "type": "string"
+            },
+            {
+              "id": "51a35ab7-8513-4a39-8129-db5efcf272ab",
+              "name": "contaFinanceiraId",
+              "value": "={{ $('Config').first().json.contaAzulContaFinanceiraId }}",
+              "type": "string"
+            },
+            {
+              "id": "00c879b9-02ef-40f6-8879-27037b529d97",
+              "name": "categoriaId",
+              "value": "={{ $('Config').first().json.contaAzulCategoriaId }}",
+              "type": "string"
+            },
+            {
+              "id": "fae6cfc2-114f-4da4-8f83-70294eab4be6",
+              "name": "servicoId",
+              "value": "={{ $('Config').first().json.contaAzulServicoId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "008a0874-03a7-48bc-8144-7fdb83182bd4",
+      "name": "Montar lançamento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.contaAzulBaseUrl }}/v1/financeiro/eventos-financeiros/contas-a-receber",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  data_competencia: $json.dataCompetencia,\n  valor: $json.valor,\n  descricao: $json.descricao,\n  observacao: 'Criado pelo n8n a partir da venda Groner #' + $json.vendaId,\n  contato: $json.idClienteContaAzul,\n  conta_financeira: $json.contaFinanceiraId,\n  rateio: $json.categoriaId ? [{ id_categoria: $json.categoriaId, valor: $json.valor }] : undefined,\n  condicao_pagamento: {\n    parcelas: [{\n      descricao: 'Parcela única',\n      data_vencimento: $json.dataVencimento,\n      nota: 'Venda Groner #' + $json.vendaId,\n      conta_financeira: $json.contaFinanceiraId,\n      detalhe_valor: { valor_bruto: $json.valor }\n    }]\n  }\n}) }}",
+        "options": {}
+      },
+      "id": "cb096e69-4afc-48d3-872c-0baa7d3f12c6",
+      "name": "Conta Azul - Criar conta a receber",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3360,
+        140
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Conta Azul OAuth2"
+        }
+      },
+      "disabled": true,
+      "notes": "DESATIVADO e fora do caminho. Nao e alternativa a venda. So religar depois de validar a API financeira, sem duplicar o valor.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.contaAzulBaseUrl }}/v1/venda",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  id_cliente: $json.idClienteContaAzul || 'TODO-CONTA-AZUL-CLIENTE-ID',\n  numero: Number($json.vendaId || 0),\n  situacao: 'APROVADO',\n  data_venda: $json.dataCompetencia,\n  observacoes: 'Origem: Groner | Venda: ' + $json.vendaId,\n  itens: [{\n    descricao: $json.descricao || 'Produto',\n    quantidade: 1,\n    valor: $json.valor,\n    id: $json.servicoId || 'TODO-CONTA-AZUL-PRODUTO-ID'\n  }]\n}) }}",
+        "options": {}
+      },
+      "id": "8acbd9b1-c4d6-4feb-8a62-23cb9b82fbae",
+      "name": "Conta Azul - Criar venda",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3360,
+        360
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Conta Azul OAuth2"
+        }
+      },
+      "disabled": true,
+      "notes": "DESATIVADO. Esqueleto do POST /v1/venda. situacao APROVADO nao foi validada. Nao ativar sem idempotencia persistida (GRONER:{gronerSaleId}).",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-fechada-1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "={{ $('Config').first().json.status_groner_fechada }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "c4e8a1b2-6d3f-4a90-9c17-2b8e5f01a6d4",
+      "name": "IF - Venda fechada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        220
+      ],
+      "notes": "Status provisorio vindo da config. Nao assumir que a API usa a string FECHADA.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {},
+      "id": "d5f9b2c3-7e40-4b01-8d28-3c9f6012b7e5",
+      "name": "Ignorar - status nao e venda fechada",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2040,
+        420
+      ],
+      "notes": "Encerra esta venda. O valor exato do status ainda nao foi confirmado na API.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendamento (desativado)": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Groner - Listar vendas do período",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groner - Listar vendas do período": {
+      "main": [
+        [
+          {
+            "node": "Separar vendas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar vendas": {
+      "main": [
+        [
+          {
+            "node": "Groner - Buscar Projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groner - Buscar Projeto": {
+      "main": [
+        [
+          {
+            "node": "Groner - Buscar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groner - Buscar Lead": {
+      "main": [
+        [
+          {
+            "node": "Normalizar dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar dados": {
+      "main": [
+        [
+          {
+            "node": "IF - Venda fechada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem CPF/CNPJ?": {
+      "main": [
+        [
+          {
+            "node": "Conta Azul - Buscar cliente por documento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sem documento (revisar na Groner)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conta Azul - Buscar cliente por documento": {
+      "main": [
+        [
+          {
+            "node": "Cliente já existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cliente já existe?": {
+      "main": [
+        [
+          {
+            "node": "Usar cliente existente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Conta Azul - Criar cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conta Azul - Criar cliente": {
+      "main": [
+        [
+          {
+            "node": "Usar cliente criado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usar cliente existente": {
+      "main": [
+        [
+          {
+            "node": "Montar lançamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usar cliente criado": {
+      "main": [
+        [
+          {
+            "node": "Montar lançamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar lançamento": {
+      "main": [
+        [
+          {
+            "node": "Conta Azul - Criar venda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Venda fechada?": {
+      "main": [
+        [
+          {
+            "node": "Tem CPF/CNPJ?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignorar - status nao e venda fechada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "LEO99ErrorAlerta"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

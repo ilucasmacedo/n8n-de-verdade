@@ -1,0 +1,233 @@
+{
+  "id": "LEO01GronerToken",
+  "name": "LEO - 01 - Groner - Gerar Token",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Gerar token da Groner (500 dias)\n\n1. Abra o node **Email e senha** e digite o e-mail e a senha do usuário de integração.\n2. Clique em **Execute workflow**.\n3. Abra o node **Groner - Gerar Token**, aba Output, e copie o `accessToken`.\n4. Cole na credencial **Groner Token** como `Bearer <token>`.\n5. **Apague a senha** do node antes de sair. Não deixe senha salva no workflow.\n\nEste workflow não guarda execuções (veja Settings), para o token não ficar no histórico.",
+        "height": 320,
+        "width": 760,
+        "color": 3
+      },
+      "id": "875bfe9c-b54c-4741-8647-ccfe2d6e567f",
+      "name": "Nota - Gerar Token",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "4f838e3e-7646-4412-8a61-730dbdc796d7",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "LEO00ConfigGeral",
+          "mode": "list",
+          "cachedResultName": "LEO - 00 - Config"
+        },
+        "options": {}
+      },
+      "id": "151e6ccb-5863-4c51-8589-1fc5cf1e9e21",
+      "name": "Config",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        220,
+        100
+      ],
+      "notes": "Busca a configuração no workflow \"LEO - 00 - Config\". Para trocar de conta Groner, mude SÓ lá.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6de8a885-53e8-4f4c-8292-f87260772348",
+              "name": "email",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "2218e80d-060b-48f2-8db2-94dc4e269cf6",
+              "name": "senha",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "99b8c862-0b5f-4f86-8259-2fa091f2392f",
+      "name": "Email e senha (preencher na hora)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        100
+      ],
+      "notes": "Preencha só na hora de executar e APAGUE a senha depois. Não salve a senha no workflow.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.baseUrl }}/Conta/GerarToken",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ email: $json.email, senha: $json.senha }) }}",
+        "options": {}
+      },
+      "id": "2ad7952f-6a00-4b31-8d34-aac3e292507a",
+      "name": "Groner - Gerar Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        100
+      ],
+      "notes": "POST /api/Conta/GerarToken (sem autenticação). Devolve accessToken válido por 500 dias.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5add268a-706a-4827-82e9-c2afeb15a9b8",
+              "name": "autenticou",
+              "value": "={{ $json.authenticated }}",
+              "type": "boolean"
+            },
+            {
+              "id": "e227793c-3eef-4598-8069-bc7e79dbe70c",
+              "name": "nome",
+              "value": "={{ $json.nome }}",
+              "type": "string"
+            },
+            {
+              "id": "faad9571-2e9d-4c0d-8287-e9d9442f2237",
+              "name": "usuarioid",
+              "value": "={{ $json.usuarioid }}",
+              "type": "number"
+            },
+            {
+              "id": "55eed50c-9ce4-433a-8122-24579d1627f0",
+              "name": "tenant",
+              "value": "={{ $json.tentant?.referencia ?? $('Config').first().json.tenant }}",
+              "type": "string"
+            },
+            {
+              "id": "668d669b-033b-42f8-89fa-c293858dcf95",
+              "name": "expiracao",
+              "value": "={{ $json.expiration }}",
+              "type": "string"
+            },
+            {
+              "id": "18f011aa-2b5c-4cc1-8864-30518e661d0a",
+              "name": "mensagem",
+              "value": "={{ $json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "262e3776-46e6-488c-8aec-49bea9a914bd",
+              "name": "inicioDoToken",
+              "value": "={{ $json.accessToken ? $json.accessToken.slice(0, 10) + '...' : '(sem token)' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a4e612af-2b39-44da-885f-5abce93f6552",
+      "name": "Resultado (sem mostrar o token)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        940,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Email e senha (preencher na hora)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email e senha (preencher na hora)": {
+      "main": [
+        [
+          {
+            "node": "Groner - Gerar Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groner - Gerar Token": {
+      "main": [
+        [
+          {
+            "node": "Resultado (sem mostrar o token)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "LEO99ErrorAlerta",
+    "saveManualExecutions": false,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveExecutionProgress": false
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

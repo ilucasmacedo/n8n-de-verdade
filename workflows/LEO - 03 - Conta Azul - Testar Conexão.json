@@ -1,0 +1,146 @@
+{
+  "id": "LEO03ContaAzulOk",
+  "name": "LEO - 03 - Conta Azul - Testar Conexão",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Testar a conexão com a Conta Azul\n\nSó leitura: GET `https://api-v2.contaazul.com/v1/pessoas` (lista 5 pessoas).\n\nUsa a credencial **Conta Azul OAuth2** (OAuth2 genérica). Antes, abra a credencial e clique em **Connect my account**.\n\n- Erro 401: autorização vencida ou não feita. Reconecte a credencial.",
+        "height": 280,
+        "width": 640,
+        "color": 4
+      },
+      "id": "30976352-363d-48c6-88b8-ad78c7367edc",
+      "name": "Nota - Testar Conta Azul",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "6dc61701-dfe7-49f0-8fad-3664f90d3bfb",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api-v2.contaazul.com/v1/pessoas",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pagina",
+              "value": "1"
+            },
+            {
+              "name": "tamanho_pagina",
+              "value": "5"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f2a637b5-1735-4ddb-81d8-f8613cd34c13",
+      "name": "Conta Azul - Listar pessoas (teste)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        100
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Conta Azul OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "badd32fc-f8fc-4447-8190-d490b8aa70a1",
+              "name": "conectado",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "669f173d-516f-4dc9-85ca-f30ff7c80524",
+              "name": "totalPessoas",
+              "value": "={{ $json.totalItems }}",
+              "type": "number"
+            },
+            {
+              "id": "fb1034cb-8c26-4eb4-8909-664a89e468c1",
+              "name": "primeiraPessoa",
+              "value": "={{ $json.items?.[0]?.nome ?? '(nenhuma pessoa)' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d65acc88-507d-4de4-8dd9-8496b6032353",
+      "name": "Resumo da conexão",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Conta Azul - Listar pessoas (teste)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conta Azul - Listar pessoas (teste)": {
+      "main": [
+        [
+          {
+            "node": "Resumo da conexão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "LEO99ErrorAlerta"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

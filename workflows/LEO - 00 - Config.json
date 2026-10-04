@@ -1,0 +1,218 @@
+{
+  "id": "LEO00ConfigGeral",
+  "name": "LEO - 00 - Config",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Configuracao unica da integracao\n\nTodos os workflows LEO chamam este aqui no comeco (node **Config**).\n\nTenant desta integracao: `gerasol`. `modo_teste` fica verdadeiro: isto nao e producao.\nO endpoint de vendas previsto e `/api/Venda/DadosVendaPorPeriodo`.\nO status `FECHADA` e provisorio ate um JSON real da API.\n\nO `baseUrl` e as datas sao calculados no node seguinte.\nExecucoes manuais usam a versao salva na hora. Execucoes agendadas usam a versao **publicada**.",
+        "height": 300,
+        "width": 620,
+        "color": 4
+      },
+      "id": "df71f78c-3f9a-48d1-8918-d27855b49fc9",
+      "name": "Nota - Config",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Campos da Conta Azul (preencher depois)\n\n`contaAzulContaFinanceiraId`, `contaAzulCategoriaId` e `contaAzulServicoId` são IDs (uuid) da conta da Leonela.\n\nCONFIRMAR com a Leonela quais usar. Dá para listar com GET `/v1/conta-financeira` e `/v1/categorias` na API da Conta Azul.",
+        "height": 300,
+        "width": 420,
+        "color": 5
+      },
+      "id": "a2ca2250-0b6f-472c-8ba5-2613243f1ee4",
+      "name": "Nota - Conta Azul",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        600,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "7e31102d-2b08-4b6b-8f08-9f41fbe88fb2",
+      "name": "Quando chamado por outro workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "feda7cd6-c3da-49ba-8200-64d2c4ee38f8",
+              "name": "ambiente",
+              "value": "teste",
+              "type": "string"
+            },
+            {
+              "id": "f8ebcdb3-7b89-4400-87d1-ca12e6cb72e9",
+              "name": "tenant",
+              "value": "gerasol",
+              "type": "string"
+            },
+            {
+              "id": "90fb1f83-c4e9-40eb-8287-4863733c4c5a",
+              "name": "diasParaBuscar",
+              "value": 7,
+              "type": "number"
+            },
+            {
+              "id": "67675017-692f-4b63-81ca-93fd354a81fd",
+              "name": "tamanhoPagina",
+              "value": 50,
+              "type": "number"
+            },
+            {
+              "id": "b6cf04f0-9d01-41fe-8547-f939655ad435",
+              "name": "maxPaginas",
+              "value": 20,
+              "type": "number"
+            },
+            {
+              "id": "30556019-d735-4759-8a0e-399b04f861aa",
+              "name": "contaAzulBaseUrl",
+              "value": "https://api-v2.contaazul.com",
+              "type": "string"
+            },
+            {
+              "id": "4a7e6d9a-b83d-4149-8c5a-07e1c9f3ac13",
+              "name": "contaAzulContaFinanceiraId",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "60fa2250-8169-44d2-82a3-e778cbecf510",
+              "name": "contaAzulCategoriaId",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "de579763-5d71-43e8-8a45-162e980c2b30",
+              "name": "contaAzulServicoId",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "spec-field-0",
+              "name": "groner_endpoint_vendas",
+              "value": "/api/Venda/DadosVendaPorPeriodo",
+              "type": "string"
+            },
+            {
+              "id": "spec-field-1",
+              "name": "conta_azul_endpoint_venda",
+              "value": "/v1/venda",
+              "type": "string"
+            },
+            {
+              "id": "spec-field-2",
+              "name": "status_groner_fechada",
+              "value": "FECHADA",
+              "type": "string"
+            },
+            {
+              "id": "spec-field-3",
+              "name": "modo_teste",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a0538049-6e07-4d04-8c79-7615f7c6c750",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        120
+      ],
+      "notes": "Tenant gerasol e modo_teste verdadeiro. Segredos nao ficam neste node.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8d880741-b125-4bde-871a-076106dc5d01",
+              "name": "baseUrl",
+              "value": "=https://{{ $json.tenant }}.api.groner.app/api",
+              "type": "string"
+            },
+            {
+              "id": "a1fc2bf8-ad7c-46eb-822b-eb303892663b",
+              "name": "dataInicio",
+              "value": "={{ $now.minus({ days: $json.diasParaBuscar }).startOf('day').toUTC().toISO({ suppressMilliseconds: true }) }}",
+              "type": "string"
+            },
+            {
+              "id": "927609e7-b758-4830-87f7-7079eedd188f",
+              "name": "dataFim",
+              "value": "={{ $now.toUTC().toISO({ suppressMilliseconds: true }) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "9773bf83-5b03-4668-87ae-183c80119bc5",
+      "name": "Montar URLs e datas",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Quando chamado por outro workflow": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Montar URLs e datas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "LEO99ErrorAlerta"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

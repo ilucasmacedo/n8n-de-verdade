@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Estudo n8n — 5 horas</title>
+  <style>
+    :root {
+      --bg: #f3f0e8;
+      --paper: #fffcf7;
+      --ink: #1c1b19;
+      --muted: #5e5a53;
+      --line: #e3ddd2;
+      --accent: #1e4ed8;
+      --accent-soft: #e7eeff;
+      --ok: #0f7a45;
+      --ok-soft: #e5f6ec;
+      --warn: #8a5a00;
+      --warn-soft: #fff4dc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 17px/1.5 "Segoe UI", sans-serif;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+    header h1 {
+      font-size: 32px;
+      line-height: 1.15;
+      margin: 0 0 8px;
+      letter-spacing: -0.03em;
+    }
+    header p { margin: 0; color: var(--muted); }
+    .stats {
+      display: flex;
+      gap: 12px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .stat {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 14px;
+      min-width: 140px;
+    }
+    .stat b { display: block; font-size: 22px; }
+    .stat span { color: var(--muted); font-size: 13px; }
+    .map {
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper);
+      display: block;
+    }
+    .note {
+      margin: 16px 0 28px;
+      padding: 12px 14px;
+      background: var(--accent-soft);
+      border-radius: 10px;
+    }
+    .note.done { background: var(--ok-soft); }
+    h2 { font-size: 22px; margin: 32px 0 10px; }
+    h3 { font-size: 16px; margin: 0 0 6px; }
+    section.hour, .box {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 12px 0;
+    }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+    ol { margin: 8px 0 0; padding-left: 20px; }
+    code, .cmd {
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 0.92em;
+    }
+    .cmd {
+      display: block;
+      background: #1c1b19;
+      color: #f3f0e8;
+      padding: 10px 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 8px 0;
+      white-space: pre-wrap;
+    }
+    label.check {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 8px 0;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper);
+      font-size: 15px;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+    }
+    th { font-size: 13px; color: var(--muted); }
+    .tag {
+      display: inline-block;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+    .tag.media { background: var(--accent-soft); color: var(--accent); }
+    .tag.baixa { background: var(--line); color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      background: var(--paper);
+      color: var(--ink);
+    }
+    a { color: var(--accent); }
+    .idea { margin: 8px 0 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>n8n do zero ao avançado em 5 horas</h1>
+      <p>Esta pasta é o material. A imagem abaixo é o mapa. O texto em seguida é o estudo. O que você marcar fica salvo neste navegador.</p>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><b>5 h</b><span>roteiro</span></div>
+      <div class="stat"><b id="score">0/17</b><span>pontos marcados</span></div>
+      <div class="stat"><b>9</b><span>melhorias cadastradas</span></div>
+    </div>
+
+    <img class="map" src="mapa-estudo.png" alt="Mapa das 5 horas de estudo de n8n: preparar, fundamentos, lógica, APIs, código e IA." />
+
+    <div class="note" id="banner">
+      Abra cada bloco, faça a prática no editor e marque o ponto. Quando os 17 estiverem marcados, esta página confirma que você olhou o caminho inteiro.
+    </div>
+
+    <h2>Preparar · 10 min</h2>
+    <section class="hour">
+      <p class="idea">O editor local é o caderno. Tudo que vier depois se constrói com o workflow aberto.</p>
+      <h3>Subir o editor nesta máquina</h3>
+      <p>O Node.js do sistema é 20.11.0. O n8n 2.41 pede 20.19 ou mais novo, e o Docker não está instalado. O que funcionou foi um Node 24 portátil, sem permissão de administrador:</p>
+      <div class="cmd">$env:Path = "C:\Users\DELL\AppData\Local\node-v24.19.0;" + $env:Path
+npx n8n</div>
+      <p>Abra <a href="http://localhost:5678">http://localhost:5678</a>. Na primeira vez, crie a conta de dono do editor. Os dados ficam em C:\Users\DELL\.n8n.</p>
+      <p>Construa cada prática no editor. Use <strong>Pin data</strong> para congelar a saída de um node e não repetir a chamada externa a cada teste.</p>
+      <label class="check"><input type="checkbox" data-id="prep-up" /> n8n aberto em localhost:5678</label>
+      <label class="check"><input type="checkbox" data-id="prep-regra" /> Vou construir cada prática no editor, com Pin data nos testes</label>
+    </section>
+
+    <h2>Hora 1 · Fundamentos</h2>
+    <section class="hour">
+      <p class="meta">1 hora</p>
+      <p class="idea">Todo node recebe e devolve uma lista de items. Cada item tem a forma <code>{ json: { ... } }</code>. O node roda uma vez por item.</p>
+      <h3>Peças</h3>
+      <p>Workflow é o fluxo inteiro. Node é um passo. Trigger é o que inicia: Manual, Schedule ou Webhook.</p>
+      <h3>Items</h3>
+      <p>Se entram 3 pessoas, o node seguinte executa 3 vezes. A aba JSON mostra a lista real. Table é só uma visão da mesma lista.</p>
+      <h3>Expressions</h3>
+      <p>Campo do item atual: <code>{{ $json.nome }}</code>. Campo de outro node: <code>{{ $('Nome do Node').item.json.campo }}</code>. Data: <code>{{ $now.toFormat('dd/MM/yyyy') }}</code>.</p>
+      <h3>Prática</h3>
+      <ol>
+        <li>Manual Trigger.</li>
+        <li>Edit Fields (Set) com 3 items: Ana, Bruno e Carla.</li>
+        <li>Outro Edit Fields com a frase Olá {{ $json.nome }}.</li>
+        <li>Confira 3 items na saída.</li>
+      </ol>
+      <p><strong>Saída:</strong> você explica por que o segundo node rodou 3 vezes.</p>
+      <label class="check"><input type="checkbox" data-id="h1-item" /> Sei explicar item, lista e { json }</label>
+      <label class="check"><input type="checkbox" data-id="h1-expr" /> Usei $json e olhei a aba JSON</label>
+      <label class="check"><input type="checkbox" data-id="h1-pratica" /> Prática das 3 pessoas feita no editor</label>
+    </section>
+
+    <h2>Hora 2 · Lógica</h2>
+    <section class="hour">
+      <p class="meta">1 hora</p>
+      <p class="idea">Ramifique, junte e mude a forma da lista. O loop manual só entra quando há limite de taxa ou paginação.</p>
+      <p><strong>IF</strong> e <strong>Switch</strong> ramificam. <strong>Merge</strong> junta ramos (posição, campo-chave ou append). Filter, Sort, Limit e Remove Duplicates enxugam a lista.</p>
+      <p><strong>Split Out</strong> transforma um array em vários items. <strong>Aggregate</strong> faz o inverso. <strong>Loop Over Items</strong> processa em lotes. O n8n já percorre os items sozinho.</p>
+      <h3>Prática</h3>
+      <ol>
+        <li>HTTP Request em https://jsonplaceholder.typicode.com/users</li>
+        <li>IF: address.city começa com S.</li>
+        <li>Nos dois ramos, Edit Fields com um rótulo. Merge no modo append.</li>
+      </ol>
+      <p><strong>Saída:</strong> você aponta qual ramo recebeu quais cidades.</p>
+      <label class="check"><input type="checkbox" data-id="h2-nodes" /> Sei quando usar IF, Merge, Split Out e Aggregate</label>
+      <label class="check"><input type="checkbox" data-id="h2-loop" /> Sei que o loop em lote é para taxa ou paginação</label>
+      <label class="check"><input type="checkbox" data-id="h2-pratica" /> Prática dos usuários com IF e Merge feita</label>
+    </section>
+
+    <h2>Hora 3 · APIs e webhooks</h2>
+    <section class="hour">
+      <p class="meta">1 hora</p>
+      <p class="idea">A maior parte do trabalho real é HTTP com credencial guardada fora do node, mais um webhook que responde.</p>
+      <p>No HTTP Request: método, headers, query, body JSON, Header Auth, Bearer ou OAuth2. <strong>Import cURL</strong> monta o node a partir de um comando. A chave fica em Credentials.</p>
+      <p>A URL de teste do Webhook só responde com o editor escutando. A URL de produção só responde com o workflow ativo. <strong>Respond to Webhook</strong> devolve o JSON que você definir.</p>
+      <h3>Prática</h3>
+      <ol>
+        <li>Webhook no path contato, body com email e mensagem.</li>
+        <li>IF: email contém @.</li>
+        <li>Respond to Webhook com { "ok": true }.</li>
+      </ol>
+      <div class="cmd">Invoke-RestMethod -Method Post -Uri "http://localhost:5678/webhook-test/contato" -ContentType "application/json" -Body '{"email":"a@b.com","mensagem":"oi"}'</div>
+      <label class="check"><input type="checkbox" data-id="h3-cred" /> Credencial criada fora do node</label>
+      <label class="check"><input type="checkbox" data-id="h3-wh" /> Sei a diferença entre URL de teste e de produção</label>
+      <label class="check"><input type="checkbox" data-id="h3-pratica" /> Webhook de contato respondendo { ok: true }</label>
+    </section>
+
+    <h2>Hora 4 · Código, arquitetura e erros</h2>
+    <section class="hour">
+      <p class="meta">1 hora</p>
+      <p class="idea">Código só onde o node visual não alcança. Erro tem caminho próprio, e lógica repetida vira sub-workflow.</p>
+      <p>O Code node devolve sempre uma lista: <code>[{ json: { ... } }]</code>. Leia todos os items com <code>$input.all()</code>. Outro node inteiro: <code>$('Nome').all()</code>.</p>
+      <p><strong>Execute Workflow</strong> chama outro fluxo, que começa com <strong>When Executed by Another Workflow</strong>.</p>
+      <p>No node: Retry On Fail, Continue On Fail, ou Continue (using error output). Um <strong>Error Workflow</strong> com Error Trigger avisa quando algo quebrar. Em Executions, use Debug in editor.</p>
+      <h3>Prática</h3>
+      <ol>
+        <li>Validação de e-mail da hora 3 vira sub-workflow.</li>
+        <li>Code node deixa o email em minúsculas, sem espaço nas pontas.</li>
+        <li>Force um erro e confira o Error Workflow.</li>
+      </ol>
+      <label class="check"><input type="checkbox" data-id="h4-code" /> Code node devolveu lista de { json }</label>
+      <label class="check"><input type="checkbox" data-id="h4-sub" /> Sub-workflow chamado com Execute Workflow</label>
+      <label class="check"><input type="checkbox" data-id="h4-erro" /> Error Workflow disparou numa falha de teste</label>
+    </section>
+
+    <h2>Hora 5 · IA e produção</h2>
+    <section class="hour">
+      <p class="meta">1 hora</p>
+      <p class="idea">O agente chama tools. Produção troca SQLite, chave e URL pública. O projeto final é o exame.</p>
+      <p><strong>AI Agent</strong> com Chat Model (OpenAI, Gemini ou Ollama), Memory e Tools. Uma tool pode ser HTTP Request, outro workflow ou Code. Basic LLM Chain com Structured Output Parser extrai JSON. RAG, em visão geral: embeddings e um vector store.</p>
+      <p>Em produção: Docker Compose com Postgres, <code>N8N_ENCRYPTION_KEY</code> fixa, HTTPS e <code>WEBHOOK_URL</code> pública. Queue mode (Redis e workers) quando uma instância só não dá conta.</p>
+      <h3>Projeto final</h3>
+      <ol>
+        <li>Bot no Telegram com AI Agent.</li>
+        <li>Uma tool que consulta uma API (cotação, clima ou um sistema seu).</li>
+        <li>Error Workflow avisando quando falhar.</li>
+      </ol>
+      <p><strong>Sinal de que o mapa fechou:</strong> você explica por que um node rodou 3 vezes e monta esse bot sem tutorial passo a passo.</p>
+      <label class="check"><input type="checkbox" data-id="h5-agent" /> AI Agent com modelo, memória e uma tool</label>
+      <label class="check"><input type="checkbox" data-id="h5-prod" /> Sei o que muda em produção: Postgres, encryption key, HTTPS, fila</label>
+      <label class="check"><input type="checkbox" data-id="h5-projeto" /> Projeto final funcionou sem tutorial aberto</label>
+    </section>
+
+    <h2>Referências</h2>
+    <div class="box">
+      <p><a href="https://docs.n8n.io">docs.n8n.io</a> · cursos em <a href="https://docs.n8n.io/courses/">docs.n8n.io/courses</a> · templates em <a href="https://n8n.io/workflows">n8n.io/workflows</a> · dúvidas em <a href="https://community.n8n.io">community.n8n.io</a></p>
+    </div>
+
+    <h2>O que falta para melhorar este estudo</h2>
+    <p>Nove itens ainda não estão no material. Estão cadastrados aqui para não se perderem. Prioridade alta deixa o roteiro executável nesta máquina.</p>
+    <table>
+      <thead>
+        <tr><th>Melhoria</th><th>Por que entra</th><th>Prioridade</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Workflows JSON de cada hora nesta pasta</td><td>Sem arquivo para importar, refazer o fluxo depende da memória.</td><td><span class="tag">Alta</span></td></tr>
+        <tr><td>Gabarito da saída de cada node</td><td>Quantos items saem e quais campos existem.</td><td><span class="tag">Alta</span></td></tr>
+        <tr><td>Anotar o comando que subiu o n8n aqui</td><td>Falta registrar se foi npx ou Docker, e a versão.</td><td><span class="tag">Alta</span></td></tr>
+        <tr><td>Projeto final em passos com Pin data</td><td>A hora 5 pede o bot sem um roteiro executável.</td><td><span class="tag media">Média</span></td></tr>
+        <tr><td>Provedor de IA escolhido e credencial</td><td>OpenAI, Gemini ou Ollama. Sem isso a hora 5 para no conceito.</td><td><span class="tag media">Média</span></td></tr>
+        <tr><td>Glossário com mais um exemplo por expression</td><td>$json, $('Node').item e $input.all() se misturam na hora 4.</td><td><span class="tag media">Média</span></td></tr>
+        <tr><td>Página curta de erros comuns</td><td>Webhook de teste com o editor fechado, workflow inativo, erro escondido.</td><td><span class="tag media">Média</span></td></tr>
+        <tr><td>Nome da primeira automação real</td><td>O avanço depois das 5 horas começa numa tarefa sua.</td><td><span class="tag baixa">Baixa</span></td></tr>
+        <tr><td>Exportar os workflows prontos para esta pasta</td><td>Reinstalar o n8n apaga o estudo se o JSON não estiver salvo.</td><td><span class="tag baixa">Baixa</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Notas</h2>
+    <textarea id="notas" placeholder="O comando que funcionou, o que travou, a automação que você quer fazer depois."></textarea>
+  </main>
+  <script>
+    const KEY = "estudo-n8n-v1";
+    const boxes = Array.from(document.querySelectorAll("input[type=checkbox]"));
+    const notas = document.getElementById("notas");
+    const score = document.getElementById("score");
+    const banner = document.getElementById("banner");
+    const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+
+    boxes.forEach((box) => {
+      box.checked = !!saved[box.dataset.id];
+      box.addEventListener("change", persist);
+    });
+    notas.value = saved.notas || "";
+    notas.addEventListener("input", persist);
+    render();
+
+    function persist() {
+      const data = { notas: notas.value };
+      boxes.forEach((box) => { data[box.dataset.id] = box.checked; });
+      localStorage.setItem(KEY, JSON.stringify(data));
+      render();
+    }
+
+    function render() {
+      const done = boxes.filter((box) => box.checked).length;
+      score.textContent = done + "/" + boxes.length;
+      if (done === boxes.length) {
+        banner.className = "note done";
+        banner.textContent = "Os 17 pontos estão marcados. Dá para revisar o caminho inteiro nesta pasta: mapa-estudo.png e esta página. Não precisa voltar ao chat.";
+      }
+    }
+  </script>
+</body>
+</html>

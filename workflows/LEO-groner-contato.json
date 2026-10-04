@@ -1,0 +1,403 @@
+{
+  "id": "LEOGronerContato",
+  "name": "LEO - Groner Contato",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Este arquivo NAO e a integracao de venda fechada. O fluxo da especificacao e Groner para Conta Azul no workflow MVP. Webhook sem autenticacao e a busca do Lead ficam desativados.\n\n## Como o contato chega\n\nNa Groner, contato é o Lead.\n\n1. **Teste manual** — o exemplo está fixado (pin) nesse gatilho. Use para ver o item sem token.\n2. **Webhook** — POST no caminho `groner-contato`. O contato vem no corpo da mensagem. O node **Responder webhook** devolve a resposta.\n\nOs dois caminhos se encontram no node **Config**.",
+        "height": 280,
+        "width": 460,
+        "color": 4
+      },
+      "id": "b55e0641-b715-4456-97ac-ed5702edb1ea",
+      "name": "Nota - Como o contato chega",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -340
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Um item é um contato\n\n1 item = 1 contato.\n\nO n8n identifica cada um pela posição na lista: o primeiro, o segundo, e assim por diante.\n\nO campo estável para a Conta Azul é o **documento** (CPF/CNPJ), só com números.\n\nCampos no node **Normalizar contato**:\n- `id` e `leadId` — id do Lead\n- `projetoId` — id do projeto (negócio). 0 = não veio projeto\n- `nome` — sem espaços nas pontas\n- `email` — minúsculo\n- `celular`\n- `documento` — só dígitos\n- `cidade`\n- `uf`",
+        "height": 380,
+        "width": 460,
+        "color": 3
+      },
+      "id": "baa128b8-6c73-4907-bfed-b73326c2a9e3",
+      "name": "Nota - Um item, um contato",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        -440
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Conta e token\n\nNo **Config**:\n- `tenant` = `gerasol`\n- `baseUrl` = `https://gerasol.api.groner.app/api`\n\nPara testar outra conta, troque os dois juntos. O endereço é `https://` + tenant + `.api.groner.app/api`.\n\n**Buscar Lead** faz GET `/Lead/{id}`.\n\nCole o token na credencial Groner Token (tipo Header Auth). Nome do header: `Authorization`. Valor: `Bearer ` + o token, com espaço depois de Bearer.\n\nSem token, o item limpo está em **Normalizar contato**.",
+        "height": 340,
+        "width": 480,
+        "color": 5
+      },
+      "id": "15cea22b-98e8-4a57-97ea-2ccd85e62fe0",
+      "name": "Nota - Token e conta",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        920,
+        -400
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "af309c82-98f0-4659-ace1-4d90b8240bc8",
+      "name": "Teste manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        180
+      ],
+      "notes": "Exemplo fictício fixado (pin). Não é cliente real.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "groner-contato",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c0c5ee04-432a-446c-b271-b7c01365d025",
+      "name": "Webhook contato",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        420
+      ],
+      "webhookId": "63826dea-64ff-4b50-8fc2-f343f3a7f6b9",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c998fbe8-58ba-4813-b3e0-8a299c6bcdb6",
+              "name": "id",
+              "value": "={{ Number($json.body.id || $json.body.leadId || $json.body.Id || $json.id || $json.leadId || 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000001",
+              "name": "leadId",
+              "value": "={{ Number($json.body.leadId || $json.body.id || $json.body.Id || $json.leadId || $json.id || 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000002",
+              "name": "nome",
+              "value": "={{ $json.body.nome || $json.body.Nome || $json.nome || $json.Nome || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000003",
+              "name": "email",
+              "value": "={{ $json.body.email || $json.body.Email || $json.email || $json.Email || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000004",
+              "name": "celular",
+              "value": "={{ $json.body.celular || $json.body.Celular || $json.body.telefone || $json.celular || $json.Celular || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000005",
+              "name": "documento",
+              "value": "={{ $json.body.documento || $json.body.Documento || $json.documento || $json.Documento || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000006",
+              "name": "cidade",
+              "value": "={{ $json.body.cidade || $json.body.Cidade || $json.cidade || $json.Cidade || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000007",
+              "name": "uf",
+              "value": "={{ $json.body.uf || $json.body.UF || $json.uf || $json.UF || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000008",
+              "name": "projetoId",
+              "value": "={{ Number($json.body.projetoId || $json.body.ProjetoId || $json.projetoId || (($json.body.projetos || $json.projetos || [])[0] || {}).id || 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000009",
+              "name": "projetos",
+              "value": "={{ $json.body.projetos || $json.body.Projetos || $json.projetos || [] }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8b59ce00-09c7-4173-8169-b21242221bc4",
+      "name": "Abrir corpo do webhook",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        420
+      ],
+      "notes": "Tira o contato de dentro de body e deixa os campos no topo do item.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a11aa101-0001-4001-8001-00000000000a",
+              "name": "tenant",
+              "value": "gerasol",
+              "type": "string"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-00000000000b",
+              "name": "baseUrl",
+              "value": "https://gerasol.api.groner.app/api",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9bbcc52d-2ace-4006-be29-866203904670",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        540,
+        280
+      ],
+      "notes": "Para outra conta, troque tenant e baseUrl juntos.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a11aa101-0001-4001-8001-00000000000c",
+              "name": "nome",
+              "value": "={{ ($json.nome ?? '').toString().trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-00000000000d",
+              "name": "email",
+              "value": "={{ ($json.email ?? '').toString().trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-00000000000e",
+              "name": "documento",
+              "value": "={{ ($json.documento ?? '').toString().replace(/\\D/g, '') }}",
+              "type": "string"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-00000000000f",
+              "name": "leadId",
+              "value": "={{ Number($json.leadId || $json.id || 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000010",
+              "name": "projetoId",
+              "value": "={{ Number($json.projetoId || ($json.projetos && $json.projetos[0] && $json.projetos[0].id) || 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "a11aa101-0001-4001-8001-000000000011",
+              "name": "id",
+              "value": "={{ Number($json.id || $json.leadId || 0) }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "230077a5-6950-4460-8b75-bf13752d3e9d",
+      "name": "Normalizar contato",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        280
+      ],
+      "notes": "Nome sem espaços nas pontas, e-mail minúsculo, documento só com dígitos.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.baseUrl }}/Lead/{{ $json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "14f15634-d373-454b-b20c-057f60e1364c",
+      "name": "Buscar Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1060,
+        280
+      ],
+      "notes": "DESATIVADO. Fora do fluxo de venda. Credencial n8n, sem token neste JSON.",
+      "notesInFlow": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Groner Token"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $('Normalizar contato').item.json }}",
+        "options": {}
+      },
+      "id": "ad2313c1-73d3-4a3c-974d-ceb7a80f698c",
+      "name": "Responder webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        280
+      ],
+      "notes": "Devolve o contato já normalizado. No teste manual este node não tem chamada para responder.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "Teste manual": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook contato": {
+      "main": [
+        [
+          {
+            "node": "Abrir corpo do webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abrir corpo do webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Normalizar contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar contato": {
+      "main": [
+        [
+          {
+            "node": "Buscar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Lead": {
+      "main": [
+        [
+          {
+            "node": "Responder webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {
+    "Teste manual": [
+      {
+        "json": {
+          "id": 900001,
+          "nome": "  Helena Exemplo  ",
+          "email": "Helena.Exemplo@Email.Test",
+          "celular": "11987654321",
+          "documento": "123.456.789-00",
+          "cidade": "Ribeirão Preto",
+          "uf": "SP",
+          "tipo": 0,
+          "cep": "14015080",
+          "projetos": [
+            {
+              "id": 900101,
+              "nome": "Projeto Helena Exemplo"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

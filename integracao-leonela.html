@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Integração Leonela — Groner + Conta Azul</title>
+  <style>
+    :root {
+      --bg: #f3f0e8;
+      --paper: #fffcf7;
+      --ink: #1c1b19;
+      --muted: #5e5a53;
+      --line: #e3ddd2;
+      --accent: #1e4ed8;
+      --accent-soft: #e7eeff;
+      --ok: #0f7a45;
+      --ok-soft: #e5f6ec;
+      --warn: #8a5a00;
+      --warn-soft: #fff4dc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 17px/1.5 "Segoe UI", sans-serif;
+    }
+    main { max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; }
+    h1 { font-size: 32px; line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.03em; }
+    h2 { font-size: 22px; margin: 32px 0 10px; }
+    h3 { font-size: 16px; margin: 0 0 6px; }
+    .lead { color: var(--muted); margin: 0; }
+    .owner {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 14px;
+    }
+    .flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+      margin: 20px 0;
+    }
+    .node {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .node b { display: block; }
+    .node span { color: var(--muted); font-size: 14px; }
+    .arrow { color: var(--accent); font-weight: 700; }
+    .box {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 12px 0;
+    }
+    .note {
+      padding: 12px 14px;
+      background: var(--warn-soft);
+      border-radius: 10px;
+      color: var(--warn);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper);
+      font-size: 15px;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+    }
+    th { font-size: 13px; color: var(--muted); }
+    code {
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 0.92em;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+    .tag.ok { background: var(--ok-soft); color: var(--ok); }
+    label.check {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 8px 0;
+      cursor: pointer;
+    }
+    ol { padding-left: 20px; }
+    a { color: var(--accent); }
+    @media (max-width: 700px) {
+      .flow { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); justify-self: center; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Integração Leonela</h1>
+    <p class="lead">Venda fechada no Groner (tenant gerasol) segue para a Conta Azul pelo n8n. Ainda é esqueleto, não produção.</p>
+    <span class="owner">Dona da integração: Leonela</span>
+
+    <div class="flow">
+      <div class="node"><b>Groner</b><span>tenant gerasol · CRM</span></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>n8n</b><span>localhost:5678</span></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Conta Azul</b><span>ERP · financeiro</span></div>
+    </div>
+
+    <p class="note">A especificação já fecha o sentido: a Groner é a origem e a Conta Azul recebe a venda. O gatilho de desenvolvimento é manual. Produção ainda escolhe entre consulta periódica e webhook de venda fechada. Falta o JSON real, o status exato, cliente, produto, parcelas e a tabela que impede duplicar.</p>
+
+    <h2>As duas APIs</h2>
+    <div class="box">
+      <h3>Groner</h3>
+      <p>REST com JSON e token JWT no header <code>Authorization: Bearer</code>. URL base deste cliente: <code>https://gerasol.api.groner.app</code>.</p>
+      <p>A consulta da venda é <code>GET /api/Venda/DadosVendaPorPeriodo</code>, com <code>dataInicio</code> e <code>dataFim</code>, como na seção 12.6 da documentação da Groner. O corpo da resposta ainda não foi capturado. <code>POST /api/Conta/GerarToken</code> só serve para obter o token de integração, que entra na credencial do n8n e não no workflow.</p>
+      <p><a href="https://ajuda.groner.app/pt-br/article/documentacao-da-api-groner-crm-vz2bq2/">Documentação da API Groner</a></p>
+    </div>
+    <div class="box">
+      <h3>Conta Azul</h3>
+      <p>REST com JSON e autenticação OAuth 2.0. Cobre clientes, produtos, vendas, notas fiscais, cobranças, contas a pagar e a receber.</p>
+      <p>O acesso exige um app cadastrado no portal do desenvolvedor, que gera o client_id e o client_secret.</p>
+      <p><a href="https://developers.contaazul.com/introduction">Portal do desenvolvedor Conta Azul</a></p>
+    </div>
+
+    <h2>Dados de acesso</h2>
+    <p>Os valores ficam no arquivo <code>.env</code> desta pasta. Esta página mostra só o nome de cada campo e se ele já foi preenchido.</p>
+    <table>
+      <thead><tr><th>Campo no .env</th><th>De onde vem</th><th>Situação</th></tr></thead>
+      <tbody>
+        <tr><td><code>GRONER_TENANT</code></td><td>Subdomínio gerasol.groner.app</td><td><span class="tag ok">Preenchido</span></td></tr>
+        <tr><td><code>GRONER_API_URL</code></td><td>Padrão da documentação para o tenant</td><td><span class="tag ok">Preenchido</span></td></tr>
+        <tr><td><code>GRONER_TOKEN</code></td><td>Tela de integração/API dentro da Groner, ou GerarToken</td><td><span class="tag">Falta</span></td></tr>
+        <tr><td><code>CONTA_AZUL_CLIENT_ID</code></td><td>App no portal do desenvolvedor</td><td><span class="tag ok">Preenchido</span></td></tr>
+        <tr><td><code>CONTA_AZUL_CLIENT_SECRET</code></td><td>App no portal do desenvolvedor</td><td><span class="tag ok">Preenchido</span></td></tr>
+        <tr><td><code>CONTA_AZUL_REDIRECT_URI</code></td><td>URL de retorno cadastrada no app</td><td><span class="tag ok">Preenchido</span></td></tr>
+        <tr><td><code>CONTA_AZUL_ACCESS_TOKEN</code> e <code>REFRESH_TOKEN</code></td><td>Gerados ao autorizar o app na conta da empresa</td><td><span class="tag">Falta</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Workflows no n8n</h2>
+    <p>Os arquivos ficam na pasta <code>workflows/</code> e já estão importados no n8n local. Todos começam com <code>LEO - </code>.</p>
+    <table>
+      <thead><tr><th>Workflow</th><th>O que faz</th></tr></thead>
+      <tbody>
+        <tr><td><code>LEO - 00 - Config</code></td><td>Guarda o tenant da Groner, a URL base, quantos dias buscar e os IDs da Conta Azul. Os outros workflows chamam este no node <b>Config</b>. É o único lugar para mudar quando trocar de conta.</td></tr>
+        <tr><td><code>LEO - 01 - Groner - Gerar Token</code></td><td>Você digita e-mail e senha na hora. Chama <code>POST /Conta/GerarToken</code> e mostra só se autenticou, nome, usuarioid, tenant e expiração. Não guarda execuções no histórico.</td></tr>
+        <tr><td><code>LEO - 02 - Groner - Testar Token</code></td><td>Chama <code>GET /Conta/MinhaConta</code> com a credencial <code>Groner Token</code>. Se ficar verde, o token funciona.</td></tr>
+        <tr><td><code>LEO - 03 - Conta Azul - Testar Conexão</code></td><td>Chama <code>GET /v1/pessoas</code> (só leitura) com a credencial <code>Conta Azul OAuth2</code>.</td></tr>
+        <tr><td><code>Groner → Conta Azul | MVP - Venda Fechada</code></td><td>Esqueleto da especificação: manual, config, buscar vendas, normalizar, IF de venda fechada, mapear, criar venda, registro. Busca, criação e registro de sucesso estão desativados.</td></tr>
+        <tr><td><code>LEO - 10 - Groner Vendas → Conta Azul</code></td><td>Rascunho alinhado ao mesmo contrato: <code>DadosVendaPorPeriodo</code>, interface interna, IF de status e POST <code>/v1/venda</code> desativado. A conta a receber ficou fora do caminho para não lançar o valor duas vezes. As chamadas externas estão desativadas.</td></tr>
+        <tr><td><code>LEO - 99 - Error Workflow</code></td><td>Quando outro workflow LEO falha, monta um resumo: nome do workflow, node que falhou, mensagem, horário e link da execução. Só dispara em execuções automáticas e precisa estar publicado.</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Por que a configuração fica num sub-workflow: assim o tenant está escrito em um lugar só. Em cada workflow, o node <b>Config</b> é um "Execute Sub-workflow" que chama o <code>LEO - 00 - Config</code>. Os outros nodes leem dali, por exemplo <code>{{ $('Config').first().json.baseUrl }}</code>. Execução manual usa sempre a versão mais recente do Config. Execução agendada usa a versão <b>publicada</b>, então depois de mudar o Config clique em <b>Publish</b>.</p>
+
+    <h2>Credenciais no n8n</h2>
+    <p>Os workflows procuram estes nomes. A credencial <code>Conta Azul OAuth2</code> já existe no n8n; falta autorizar a conta se o teste de leitura ainda não ficou verde. A credencial <code>Groner Token</code> ainda precisa ser criada: o token no <code>.env</code> está vazio. Não copie segredo para arquivo de workflow.</p>
+    <div class="box">
+      <h3>Groner Token (Header Auth)</h3>
+      <ol>
+        <li>No menu da esquerda, abra <b>Overview</b>, aba <b>Credentials</b>, botão <b>Create credential</b>.</li>
+        <li>Procure e escolha <b>Header Auth</b>.</li>
+        <li>No topo, troque o nome da credencial para <code>Groner Token</code>.</li>
+        <li><b>Name</b>: <code>Authorization</code></li>
+        <li><b>Value</b>: <code>Bearer </code> seguido do token, com um espaço depois de Bearer. O token sai do workflow <code>LEO - 01</code>.</li>
+        <li>Clique em <b>Save</b> e rode o <code>LEO - 02</code> para testar.</li>
+      </ol>
+    </div>
+    <div class="box">
+      <h3>Conta Azul OAuth2 (OAuth2 genérica)</h3>
+      <p>Antes, no <a href="https://developers.contaazul.com/introduction">Portal do Desenvolvedor</a>, crie o app e cadastre como URL de redirecionamento a URL do n8n: <code>http://localhost:5678/rest/oauth2-credential/callback</code>. Ela tem que ser exatamente igual nos dois lados.</p>
+      <ol>
+        <li>Em <b>Create credential</b>, escolha <b>OAuth2 API</b> e dê o nome <code>Conta Azul OAuth2</code>.</li>
+        <li>Preencha os campos da tabela abaixo.</li>
+        <li>Clique em <b>Save</b> e depois em <b>Connect my account</b>. Entre com a conta do ERP Conta Azul (não a do Portal do Desenvolvedor) e autorize.</li>
+        <li>Rode o <code>LEO - 03</code>. O n8n renova o token sozinho: o access_token dura 1 hora e o refresh_token até 2 anos.</li>
+      </ol>
+      <table>
+        <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+        <tbody>
+          <tr><td>Grant Type</td><td><code>Authorization Code</code></td></tr>
+          <tr><td>Authorization URL</td><td><code>https://login.contaazul.com/#/oauth/authorize</code></td></tr>
+          <tr><td>Access Token URL</td><td><code>https://api-v2.contaazul.com/oauth/token</code></td></tr>
+          <tr><td>Client ID e Client Secret</td><td>Do app no portal (não escreva em arquivos)</td></tr>
+          <tr><td>Scope</td><td><code>openid profile aws.cognito.signin.user.admin</code></td></tr>
+          <tr><td>Auth URI Query Parameters</td><td>vazio</td></tr>
+          <tr><td>Authentication</td><td><code>Header</code> (Basic Auth com client_id:client_secret, como a doc pede)</td></tr>
+          <tr><td>OAuth Redirect URL (mostrada pelo n8n)</td><td><code>http://localhost:5678/rest/oauth2-credential/callback</code></td></tr>
+        </tbody>
+      </table>
+      <p class="note">CONFIRMAR: a Authorization URL oficial tem um <code>#</code>, e o n8n coloca os parâmetros antes dele. Se a tela de login da Conta Azul não abrir certo, troque para <code>https://auth.contaazul.com/oauth2/authorize</code> e <code>https://auth.contaazul.com/oauth2/token</code> (endereços antigos, ainda usados pelo node oficial da Conta Azul para n8n). Confirme também se o portal aceita redirect com <code>http://localhost</code>; se não aceitar, o n8n vai precisar de um endereço público.</p>
+    </div>
+
+    <h2>Tenant gerasol</h2>
+    <div class="box">
+      <p>O node <b>Config</b> do <code>LEO - 00</code> já usa o tenant <code>gerasol</code>, com <code>modo_teste</code> verdadeiro. Isso não liga a automação em produção.</p>
+      <ol>
+        <li>Abra <code>LEO - 01</code>, digite e-mail e senha do usuário de integração na hora da execução. Copie o token da saída e apague a senha do node.</li>
+        <li>Grave o token só na credencial <code>Groner Token</code>, como <code>Bearer</code> mais o token. Não cole o token em arquivo de workflow.</li>
+        <li>Rode o <code>LEO - 02</code>. O resumo tem que ser o usuário da Gerasol.</li>
+        <li>Conecte <code>Conta Azul OAuth2</code> e rode o <code>LEO - 03</code>.</li>
+        <li>Não publique o agendamento enquanto a tabela de duplicidade não existir.</li>
+      </ol>
+    </div>
+
+    <h2>O que ainda está em aberto</h2>
+    <div class="box">
+      <p>A especificação já define venda fechada no Groner como origem e venda mais financeiro na Conta Azul como destino. Continuam em aberto:</p>
+      <ol>
+        <li>O JSON real de <code>DadosVendaPorPeriodo</code> e o valor exato do status de venda fechada.</li>
+        <li>Se a produção consulta de tempos em tempos ou recebe um evento do Groner.</li>
+        <li>A regra de criar produto na Conta Azul quando o código não existir.</li>
+        <li>A API financeira das parcelas, sem lançar o valor duas vezes.</li>
+        <li>Quem recebe o aviso quando a integração falhar.</li>
+      </ol>
+    </div>
+
+    <h2>Critérios de aceite</h2>
+    <div class="box">
+      <p>Nenhum item abaixo está aceito. Marcar aqui é só anotação local.</p>
+      <label class="check"><input type="checkbox" data-id="aceite-venda" /> Uma venda fechada do Groner é encontrada</label>
+      <label class="check"><input type="checkbox" data-id="aceite-id" /> O ID da venda é preservado</label>
+      <label class="check"><input type="checkbox" data-id="aceite-cliente" /> O cliente correto é identificado</label>
+      <label class="check"><input type="checkbox" data-id="aceite-criar-cliente" /> O cliente é criado caso a regra permita</label>
+      <label class="check"><input type="checkbox" data-id="aceite-produto" /> Os produtos são corretamente relacionados</label>
+      <label class="check"><input type="checkbox" data-id="aceite-valor" /> O valor total é preservado</label>
+      <label class="check"><input type="checkbox" data-id="aceite-venda-ca" /> A venda é criada no Conta Azul</label>
+      <label class="check"><input type="checkbox" data-id="aceite-parcelas" /> As parcelas são corretamente registradas</label>
+      <label class="check"><input type="checkbox" data-id="aceite-duplicidade" /> A venda não é duplicada</label>
+      <label class="check"><input type="checkbox" data-id="aceite-vinculo" /> Existe registro do ID Groner e do ID Conta Azul</label>
+      <label class="check"><input type="checkbox" data-id="aceite-erros" /> Erros são registrados</label>
+      <label class="check"><input type="checkbox" data-id="aceite-falhas" /> Falhas de API são tratadas</label>
+      <label class="check"><input type="checkbox" data-id="aceite-retry" /> Retries não geram duplicidade</label>
+      <label class="check"><input type="checkbox" data-id="aceite-paginacao" /> Paginação funciona</label>
+      <label class="check"><input type="checkbox" data-id="aceite-tokens" /> Tokens não aparecem nos logs</label>
+      <label class="check"><input type="checkbox" data-id="aceite-reexecucao" /> Executar de novo não gera lançamento duplicado</label>
+    </div>
+  </main>
+  <script>
+    const KEY = "integracao-leonela-aceite-v1";
+    const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+    document.querySelectorAll("input[type=checkbox]").forEach((box) => {
+      box.checked = !!saved[box.dataset.id];
+      box.addEventListener("change", () => {
+        saved[box.dataset.id] = box.checked;
+        localStorage.setItem(KEY, JSON.stringify(saved));
+      });
+    });
+  </script>
+</body>
+</html>

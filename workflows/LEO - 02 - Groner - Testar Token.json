@@ -1,0 +1,171 @@
+{
+  "id": "LEO02GronerTeste",
+  "name": "LEO - 02 - Groner - Testar Token",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Testar o token da Groner\n\nChama GET `/api/Conta/MinhaConta` com a credencial **Groner Token** (Header Auth).\n\n- Verde: o token funciona e aparece o seu usuário.\n- Erro 401: token errado, vencido, ou falta a palavra `Bearer ` antes dele.\n- Erro ENOTFOUND: o `tenant` no workflow LEO - 00 - Config está errado.",
+        "height": 280,
+        "width": 640,
+        "color": 4
+      },
+      "id": "783e7690-6d73-46b3-8539-99fb1d313225",
+      "name": "Nota - Testar Token",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "2c7a9a1b-9790-4682-824f-aec1a2526a86",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "LEO00ConfigGeral",
+          "mode": "list",
+          "cachedResultName": "LEO - 00 - Config"
+        },
+        "options": {}
+      },
+      "id": "8339788c-8f3e-4c86-85f6-ee80b31f38ce",
+      "name": "Config",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        220,
+        100
+      ],
+      "notes": "Busca a configuração no workflow \"LEO - 00 - Config\". Para trocar de conta Groner, mude SÓ lá.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.baseUrl }}/Conta/MinhaConta",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b9a82147-4419-4eeb-80a6-39830cd720b4",
+      "name": "Groner - Minha Conta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        100
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Groner Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cbd6791e-408e-4b15-80a3-8d1a6bfe1354",
+              "name": "tokenFunciona",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "6b03be15-fbfd-4189-848b-f5332de2534a",
+              "name": "tenant",
+              "value": "={{ $('Config').first().json.tenant }}",
+              "type": "string"
+            },
+            {
+              "id": "34c4fe6d-170e-4bee-88ec-5369f099bf70",
+              "name": "nome",
+              "value": "={{ $json.nome }}",
+              "type": "string"
+            },
+            {
+              "id": "9b4b904e-3d0c-4564-8a2a-4021902d774e",
+              "name": "email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "160f3c59-80ad-456e-8fd5-53b07a13362f",
+      "name": "Resumo",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        700,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Groner - Minha Conta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groner - Minha Conta": {
+      "main": [
+        [
+          {
+            "node": "Resumo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "LEO99ErrorAlerta"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

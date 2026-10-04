@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>n8n de verdade</title>
+  <style>
+    :root {
+      --bg: #f3f0e8;
+      --paper: #fffcf7;
+      --ink: #1c1b19;
+      --muted: #5e5a53;
+      --line: #e3ddd2;
+      --accent: #1e4ed8;
+      --accent-soft: #e7eeff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 17px/1.5 "Segoe UI", sans-serif;
+    }
+    main { max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; }
+    h1 { font-size: 32px; line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.03em; }
+    .lead { color: var(--muted); margin: 0 0 24px; }
+    a.card {
+      display: block;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 12px 0;
+      color: inherit;
+      text-decoration: none;
+    }
+    a.card:hover { border-color: var(--accent); }
+    a.card b { display: block; color: var(--accent); }
+    a.card span { color: var(--muted); font-size: 15px; }
+    .note {
+      margin-top: 28px;
+      padding: 12px 14px;
+      background: var(--accent-soft);
+      border-radius: 10px;
+      color: var(--ink);
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>n8n de verdade</h1>
+    <p class="lead">Páginas desta pasta, para abrir no navegador.</p>
+
+    <a class="card" href="integracao-leonela.html">
+      <b>Integração Leonela</b>
+      <span>Groner para Conta Azul: fluxo, credenciais e o que ainda falta.</span>
+    </a>
+    <a class="card" href="estudo-n8n.html">
+      <b>Estudo n8n — 5 horas</b>
+      <span>Roteiro de estudo do n8n.</span>
+    </a>
+    <a class="card" href="Especificacao-Tecnica-Integracao-Leonela.md">
+      <b>Especificação técnica</b>
+      <span>Texto completo da integração, em Markdown.</span>
+    </a>
+
+    <p class="note">Senhas e tokens continuam só no computador, no arquivo .env. Eles não entram neste site.</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,397 @@
+{
+  "origem": {
+    "especificacao": "C:\\Users\\DELL\\Downloads\\Especificacao_Tecnica_Groner_ContaAzul_n8n.md",
+    "pacote_zip": "C:\\Users\\DELL\\Downloads\\groner_contaazul_n8n_mvp.zip",
+    "arquivos_no_zip": [
+      "groner_contaazul_mvp.json",
+      "LEIA-ME.txt"
+    ]
+  },
+  "variaveis_ambiente": [
+    "GRONER_TENANT",
+    "GRONER_API_URL",
+    "GRONER_TOKEN",
+    "CONTA_AZUL_APP_NAME",
+    "CONTA_AZUL_CLIENT_ID",
+    "CONTA_AZUL_CLIENT_SECRET",
+    "CONTA_AZUL_REDIRECT_URI",
+    "CONTA_AZUL_TEST_USER",
+    "CONTA_AZUL_TEST_PASSWORD",
+    "CONTA_AZUL_ACCESS_TOKEN",
+    "CONTA_AZUL_REFRESH_TOKEN"
+  ],
+  "segredos": "Ficam somente no .env. Este arquivo nao guarda client secret, senha nem token.",
+  "leia_me": "MVP n8n — Groner → Conta Azul\n\nESQUELETO de desenvolvimento, não integração pronta para produção.\n\nFluxo:\nManual → Config → Buscar vendas Groner → Normalizar → IF fechada\n→ Mapear Conta Azul → Criar venda Conta Azul → Registro.\n\nAntes de habilitar:\n1. Configurar Authorization da Groner.\n2. Capturar um JSON real de venda do Groner e ajustar o mapeamento.\n3. Configurar OAuth2 da Conta Azul.\n4. Resolver cliente/produto por IDs da Conta Azul.\n5. Definir criação das parcelas/contas a receber.\n6. Implementar controle de duplicidade.\n7. Criar Error Workflow/logs.\n8. Testar primeiro no ambiente de desenvolvimento/teste.\n\nNenhum token, senha ou client_secret foi incluído.\n",
+  "especificacao_markdown": "# Especificação Técnica --- Automação Groner CRM → Conta Azul via n8n\n\n## 1. Objetivo\n\nConstruir uma automação no n8n que integre o **Groner CRM** ao **Conta\nAzul ERP**.\n\nO objetivo de negócio é:\n\n> Quando uma venda for fechada no Groner, a automação deve obter os\n> dados completos dessa venda, transformar os dados para o formato\n> aceito pelo Conta Azul, localizar ou criar o cliente necessário, criar\n> a venda no Conta Azul, alimentar corretamente o financeiro/parcelas\n> quando aplicável, registrar a relação entre a venda do Groner e a\n> venda do Conta Azul e impedir que a mesma venda seja lançada duas\n> vezes.\n\nFluxo conceitual:\n\n``` text\nVENDA FECHADA NO GRONER\n        ↓\nn8n\n        ↓\nBuscar dados completos da venda\n        ↓\nValidar / normalizar\n        ↓\nVerificar duplicidade\n        ↓\nLocalizar ou criar cliente no Conta Azul\n        ↓\nMapear produtos/itens\n        ↓\nCriar venda no Conta Azul\n        ↓\nCriar/configurar parcelas/financeiro\n        ↓\nRegistrar vínculo Groner ↔ Conta Azul\n        ↓\nSUCESSO\n```\n\nO workflow atual é deliberadamente um **MVP/esqueleto de\ndesenvolvimento**. Ele não deve ser considerado uma integração de\nprodução até que os pontos marcados como TODO sejam implementados e\ntestados.\n\n------------------------------------------------------------------------\n\n# 2. Sistemas envolvidos\n\n## 2.1 Groner CRM\n\nO Groner é a origem dos dados da venda.\n\nA API do Groner utiliza REST/JSON e autenticação via Bearer/JWT.\n\nO workflow deverá utilizar a API de vendas do Groner, especialmente o\nrecurso relacionado à consulta de vendas por período:\n\n``` text\n/api/Venda/DadosVendaPorPeriodo\n```\n\nA URL base possui o formato:\n\n``` text\nhttps://{TENANT}.api.groner.app\n```\n\nPortanto, a URL completa deverá ser construída a partir de:\n\n``` text\nGRONER_BASE_URL\n+\n/api/Venda/DadosVendaPorPeriodo\n```\n\nA autenticação NÃO deve ser escrita diretamente nos nodes.\n\nDeve ser configurada como credencial segura do n8n.\n\n------------------------------------------------------------------------\n\n## 2.2 Conta Azul\n\nO Conta Azul é o destino da venda.\n\nA API utiliza OAuth 2.0.\n\nA base da API utilizada pelo MVP é:\n\n``` text\nhttps://api-v2.contaazul.com\n```\n\nO endpoint inicial de criação da venda é:\n\n``` text\nPOST /v1/venda\n```\n\nA autenticação deve ser configurada por credencial OAuth2 do n8n.\n\nNunca colocar:\n\n-   client_secret\n-   access_token\n-   refresh_token\n-   senha\n-   credenciais do cliente\n\ndiretamente no JSON do workflow.\n\n------------------------------------------------------------------------\n\n# 3. Estado atual do JSON\n\nO JSON atual possui os seguintes nodes:\n\n1.  MANUAL - Teste\n2.  CONFIG - Preencher depois\n3.  GRONER - Buscar vendas\n4.  NORMALIZAR - Venda Groner\n5.  IF - Venda fechada?\n6.  MAPEAR - Conta Azul\n7.  CONTA AZUL - Criar venda\n8.  SUCESSO - Registro\n\nFluxo atual:\n\n``` text\nMANUAL - Teste\n      ↓\nCONFIG - Preencher depois\n      ↓\nGRONER - Buscar vendas\n      ↓\nNORMALIZAR - Venda Groner\n      ↓\nIF - Venda fechada?\n      ↓\nMAPEAR - Conta Azul\n      ↓\nCONTA AZUL - Criar venda\n      ↓\nSUCESSO - Registro\n```\n\nOs nodes que fazem chamadas externas estão desativados no MVP para\nevitar execução acidental antes da configuração das credenciais e do\nmapeamento real.\n\n------------------------------------------------------------------------\n\n# 4. Node 1 --- MANUAL - Teste\n\n## Tipo\n\nManual Trigger.\n\n## Função\n\nÉ o gatilho de desenvolvimento.\n\nEle permite executar o workflow manualmente durante a construção e\ntestes.\n\nNeste estágio ele existe para facilitar:\n\n-   testes;\n-   debugging;\n-   inspeção dos dados;\n-   desenvolvimento do mapeamento;\n-   validação das APIs.\n\nNão deve necessariamente permanecer como gatilho definitivo em produção.\n\n------------------------------------------------------------------------\n\n# 5. Node 2 --- CONFIG - Preencher depois\n\n## Função\n\nCentralizar configurações básicas utilizadas pelo workflow.\n\nO MVP possui atualmente:\n\n``` json\n{\n  \"groner_base_url\": \"https://SEU_TENANT.api.groner.app\",\n  \"groner_endpoint_vendas\": \"/api/Venda/DadosVendaPorPeriodo\",\n  \"conta_azul_base_url\": \"https://api-v2.contaazul.com\",\n  \"conta_azul_endpoint_venda\": \"/v1/venda\",\n  \"status_groner_fechada\": \"FECHADA\",\n  \"modo_teste\": true\n}\n```\n\nEsses valores são parâmetros de desenvolvimento.\n\nA IA que continuar esse projeto deve evitar espalhar URLs e\nconfigurações hardcoded por vários nodes.\n\nSempre que possível:\n\n``` text\nCONFIG\n   ↓\nnodes posteriores\n```\n\ndevem receber os parâmetros por expressão ou credencial.\n\n------------------------------------------------------------------------\n\n# 6. Node 3 --- GRONER - Buscar vendas\n\n## Tipo\n\nHTTP Request.\n\n## Objetivo\n\nConsultar vendas no Groner.\n\nEndpoint previsto:\n\n``` text\nGET /api/Venda/DadosVendaPorPeriodo\n```\n\nO MVP usa uma janela inicial aproximada de:\n\n``` text\nDataInicial = ontem\nDataFinal   = hoje\n```\n\ne parâmetros de paginação:\n\n``` text\nPageNumber = 1\nPageSize   = 100\n```\n\n### Importante\n\nEsses nomes de parâmetros são provisórios.\n\nAntes de produção, verificar na documentação e em uma resposta real da\nAPI do cliente:\n\n-   nome exato dos parâmetros;\n-   formato das datas;\n-   paginação;\n-   estrutura da resposta;\n-   campo que representa o status;\n-   identificador único da venda;\n-   estrutura do cliente;\n-   estrutura dos itens;\n-   estrutura das parcelas;\n-   valor total;\n-   descontos;\n-   acréscimos;\n-   vendedor;\n-   forma de pagamento.\n\nA IA não deve assumir que os nomes usados no MVP representam exatamente\no payload real do Groner.\n\n------------------------------------------------------------------------\n\n# 7. Dados esperados do Groner\n\nO workflow precisa chegar a uma estrutura interna normalizada semelhante\na:\n\n``` json\n{\n  \"gronerSaleId\": \"12345\",\n  \"status\": \"FECHADA\",\n  \"saleNumber\": \"987\",\n  \"saleDate\": \"2026-10-03\",\n  \"customer\": {\n    \"name\": \"Cliente Exemplo\",\n    \"document\": \"00000000000\",\n    \"email\": \"cliente@email.com\",\n    \"phone\": \"41999999999\"\n  },\n  \"total\": 1500,\n  \"installments\": [],\n  \"items\": []\n}\n```\n\nEssa estrutura é uma INTERFACE INTERNA.\n\nEla não significa que esses sejam os nomes reais dos campos do Groner.\n\nOs campos reais deverão ser mapeados depois de receber um JSON\nverdadeiro.\n\n------------------------------------------------------------------------\n\n# 8. Node 4 --- NORMALIZAR - Venda Groner\n\n## Tipo\n\nCode node.\n\n## Função\n\nConverter o payload bruto do Groner para um modelo interno padronizado.\n\nO MVP tenta localizar campos usando alternativas como:\n\n``` javascript\nv.id\nv.Id\n\nv.status\nv.Status\nv.statusVenda\n\nv.numero\nv.Numero\n\nv.dataVenda\nv.DataVenda\n\nv.cliente\nv.Cliente\n\nv.parcelas\nv.Parcelas\n\nv.itens\nv.Itens\nv.items\n```\n\nIsso é apenas uma aproximação inicial.\n\nA implementação definitiva deverá ser feita com base em um payload real.\n\n------------------------------------------------------------------------\n\n# 9. Regras de normalização\n\nA normalização deverá produzir, no mínimo:\n\n## Identificador\n\n``` text\ngronerSaleId\n```\n\nEsse campo é obrigatório.\n\nEle será usado para impedir duplicidade.\n\n## Status\n\n``` text\nstatus\n```\n\nUsado para determinar se a venda deve continuar no fluxo.\n\n## Número da venda\n\n``` text\nsaleNumber\n```\n\n## Data\n\n``` text\nsaleDate\n```\n\n## Cliente\n\n``` text\ncustomer.name\ncustomer.document\ncustomer.email\ncustomer.phone\n```\n\n## Valor\n\n``` text\ntotal\n```\n\n## Parcelas\n\n``` text\ninstallments[]\n```\n\n## Itens\n\n``` text\nitems[]\n```\n\n------------------------------------------------------------------------\n\n# 10. Node 5 --- IF - Venda fechada?\n\n## Função\n\nDecidir se a venda deve ser enviada ao Conta Azul.\n\nRegra atual:\n\n``` text\nstatus == \"FECHADA\"\n```\n\nSe SIM:\n\n``` text\ncontinua\n```\n\nSe NÃO:\n\n``` text\nencerra / ignora\n```\n\n### Importante\n\nO status `FECHADA` é provisório.\n\nA IA deverá confirmar o valor exato usado pelo Groner para representar\numa venda efetivamente fechada.\n\nNão assumir que o sistema usa exatamente a string:\n\n``` text\nFECHADA\n```\n\n------------------------------------------------------------------------\n\n# 11. Controle de duplicidade --- obrigatório\n\nEste é um dos requisitos mais importantes da automação.\n\nUma venda do Groner NÃO pode ser criada duas vezes no Conta Azul.\n\nExemplo de problema que deve ser evitado:\n\n``` text\nGroner venda 123\n      ↓\nn8n cria Conta Azul venda 456\n      ↓\nworkflow executa novamente\n      ↓\nGroner venda 123 aparece novamente\n      ↓\nn8n cria Conta Azul venda 789\n```\n\nIsso é proibido.\n\nA implementação definitiva deve manter uma tabela ou armazenamento\npersistente com pelo menos:\n\n``` text\ngroner_sale_id\nconta_azul_sale_id\nstatus\ncreated_at\nupdated_at\nerror\n```\n\nExemplo:\n\n``` json\n{\n  \"groner_sale_id\": \"123\",\n  \"conta_azul_sale_id\": \"456\",\n  \"status\": \"SUCCESS\",\n  \"created_at\": \"2026-10-03T20:00:00-03:00\"\n}\n```\n\nAntes de criar uma venda:\n\n``` text\nExiste groner_sale_id?\n       ↓\n      SIM\n       ↓\nNão criar novamente\n```\n\nSe não existir:\n\n``` text\nCriar venda\n   ↓\nSalvar vínculo\n```\n\n------------------------------------------------------------------------\n\n# 12. Node 6 --- MAPEAR - Conta Azul\n\n## Tipo\n\nCode node.\n\n## Função\n\nTransformar o modelo interno em payload compatível com o endpoint de\nvenda da Conta Azul.\n\nO MVP possui atualmente um payload conceitual:\n\n``` json\n{\n  \"id_cliente\": \"TODO-CONTA-AZUL-CLIENTE-ID\",\n  \"numero\": 987,\n  \"situacao\": \"APROVADO\",\n  \"data_venda\": \"2026-10-03\",\n  \"observacoes\": \"Origem: Groner | Venda: 12345\",\n  \"itens\": [\n    {\n      \"descricao\": \"Produto\",\n      \"quantidade\": 1,\n      \"valor\": 1500,\n      \"id\": \"TODO-CONTA-AZUL-PRODUTO-ID\"\n    }\n  ]\n}\n```\n\nEsse payload também é um ESQUELETO.\n\nAntes da produção, validar todos os campos contra a versão atual da API\nda Conta Azul.\n\n------------------------------------------------------------------------\n\n# 13. Cliente na Conta Azul\n\nA integração precisa responder:\n\n> O cliente da venda Groner já existe na Conta Azul?\n\nEstratégia:\n\n``` text\nCliente Groner\n     ↓\nbuscar por identificador confiável\n     ↓\nencontrou?\n ┌───┴───┐\nSIM     NÃO\n ↓       ↓\nusar    criar\nID      cliente\n         ↓\n       usar ID\n```\n\nO documento do cliente, quando disponível e permitido pelo sistema, deve\nser preferido como identificador de negócio.\n\nNão utilizar somente nome para deduplicação.\n\nExemplo ruim:\n\n``` text\nJoão da Silva\n```\n\nExemplo melhor:\n\n``` text\nCPF/CNPJ\n```\n\nSe não houver documento, deverá ser definida uma estratégia alternativa\nusando os dados disponíveis.\n\n------------------------------------------------------------------------\n\n# 14. Produtos / itens\n\nCada item do Groner precisa ser transformado em um item aceito pelo\nConta Azul.\n\nA integração precisa definir como relacionar:\n\n``` text\nProduto Groner\n      ↓\nProduto Conta Azul\n```\n\nPreferência:\n\n``` text\ncódigo/SKU\n```\n\nou outro identificador estável.\n\nEvitar depender apenas de:\n\n``` text\nnome do produto\n```\n\nporque nomes podem mudar.\n\nA IA deverá implementar uma etapa:\n\n``` text\nBuscar produto Conta Azul\n        ↓\nExiste?\n   ┌────┴────┐\n  SIM       NÃO\n   ↓         ↓\nusar ID   decidir:\n          criar ou\n          bloquear erro\n```\n\nA regra de criação automática de produtos deve ser definida pelo cliente\nantes da produção.\n\n------------------------------------------------------------------------\n\n# 15. Node 7 --- CONTA AZUL - Criar venda\n\n## Tipo\n\nHTTP Request.\n\n## Método\n\n``` text\nPOST\n```\n\n## Endpoint inicial\n\n``` text\nhttps://api-v2.contaazul.com/v1/venda\n```\n\n## Body\n\nJSON gerado pelo node:\n\n``` text\n$json.contaAzulPayload\n```\n\n## Autenticação\n\nOAuth 2.0.\n\nNunca colocar tokens diretamente no node.\n\nUtilizar credencial do n8n.\n\n------------------------------------------------------------------------\n\n# 16. Parcelas / financeiro\n\nEste requisito é parte central do projeto.\n\nA venda fechada no Groner pode possuir:\n\n``` text\nvalor total\nforma de pagamento\nnúmero de parcelas\nvencimento de cada parcela\nvalor de cada parcela\n```\n\nA automação deve transformar essas informações em registros financeiros\naceitos pelo Conta Azul.\n\nNão assumir que simplesmente criar a venda já significa que todo o\nfinanceiro foi criado exatamente como o cliente espera.\n\nAntes da versão final, validar:\n\n1.  endpoint de contas a receber;\n2.  estrutura das parcelas;\n3.  vencimentos;\n4.  valores;\n5.  forma de pagamento;\n6.  situação;\n7.  categoria;\n8.  centro de custo, se necessário;\n9.  cliente vinculado;\n10. vínculo com a venda.\n\nA implementação final deve preservar a lógica financeira original da\nvenda do Groner.\n\n------------------------------------------------------------------------\n\n# 17. Node 8 --- SUCESSO - Registro\n\n## Função\n\nMarcar que a integração terminou com sucesso.\n\nO MVP cria campos:\n\n``` json\n{\n  \"integracao_status\": \"SUCESSO\",\n  \"origem\": \"Groner\",\n  \"destino\": \"Conta Azul\"\n}\n```\n\nNa versão definitiva, esse node deverá registrar também:\n\n``` text\ngroner_sale_id\nconta_azul_sale_id\ntimestamp\nstatus\n```\n\nIdealmente o registro deverá ser persistido em banco/tabela própria.\n\n------------------------------------------------------------------------\n\n# 18. Tratamento de erros\n\nA versão definitiva deve possuir Error Workflow.\n\nErros possíveis:\n\n### Groner\n\n-   API indisponível;\n-   token expirado;\n-   token inválido;\n-   timeout;\n-   resposta inválida;\n-   venda não encontrada.\n\n### Conta Azul\n\n-   OAuth expirado;\n-   cliente inexistente;\n-   produto inexistente;\n-   payload inválido;\n-   venda duplicada;\n-   rate limit;\n-   API indisponível;\n-   erro 4xx;\n-   erro 5xx.\n\n### Regra\n\nUm erro não deve resultar em uma segunda venda automática sem verificar\nse a primeira criação realmente ocorreu.\n\nExemplo perigoso:\n\n``` text\nPOST Conta Azul\n      ↓\nConta Azul cria venda\n      ↓\nresposta demora\n      ↓\nn8n entende timeout\n      ↓\nretry\n      ↓\nsegunda venda\n```\n\nPortanto, retries precisam ser idempotentes ou precedidos de\nverificação.\n\n------------------------------------------------------------------------\n\n# 19. Idempotência\n\nA automação deve ser idempotente.\n\nConceito:\n\n> Executar a mesma venda duas ou mais vezes não pode gerar múltiplos\n> lançamentos financeiros.\n\nChave de idempotência recomendada:\n\n``` text\nGRONER:{gronerSaleId}\n```\n\nExemplo:\n\n``` text\nGRONER:12345\n```\n\nEssa chave deve ser persistida.\n\n------------------------------------------------------------------------\n\n# 20. Estratégia de execução\n\nO MVP usa:\n\n``` text\nManual Trigger\n```\n\nPara produção, o projeto deve decidir entre:\n\n### Opção A --- Polling\n\nExecutar a cada X minutos:\n\n``` text\nSchedule Trigger\n      ↓\nbuscar vendas recentes\n      ↓\nfiltrar fechadas\n      ↓\nprocessar novas\n```\n\nVantagem:\n\n-   simples;\n-   previsível;\n-   fácil de monitorar.\n\n### Opção B --- Webhook/evento do Groner\n\nSe o Groner fornecer um evento adequado para venda fechada, utilizar:\n\n``` text\nGroner\n   ↓\nWebhook\n   ↓\nn8n\n   ↓\nprocessamento imediato\n```\n\nPreferir webhook quando houver evento confiável para o evento exato de\nvenda fechada.\n\n------------------------------------------------------------------------\n\n# 21. Janela de busca e duplicidade\n\nSe for utilizado polling, nunca confiar apenas em:\n\n``` text\núltimas 24 horas\n```\n\ncomo mecanismo de controle.\n\nExemplo:\n\n``` text\nDia 1:\nvenda 123 fechada\n```\n\nn8n fica indisponível.\n\n``` text\nDia 2:\nn8n volta\n```\n\nA venda precisa ser encontrada.\n\nPortanto, a janela de consulta pode ter sobreposição:\n\n``` text\núltimas 24/48 horas\n```\n\nou outra janela adequada.\n\nA duplicidade será resolvida pelo armazenamento de `groner_sale_id`.\n\nAssim:\n\n``` text\nBuscar mais dados\n+\ndeduplicar\n=\nsegurança\n```\n\n------------------------------------------------------------------------\n\n# 22. Paginação\n\nSe houver mais de 100 vendas no período, o workflow não pode processar\nsomente a primeira página.\n\nDeve existir paginação:\n\n``` text\nPágina 1\n ↓\nPágina 2\n ↓\nPágina 3\n ↓\n...\n```\n\naté não existirem mais resultados.\n\nA implementação deve seguir o mecanismo de paginação efetivamente\ndocumentado pelo Groner.\n\n------------------------------------------------------------------------\n\n# 23. Segurança\n\nNunca armazenar no workflow:\n\n``` text\npassword\nclient_secret\naccess_token\nrefresh_token\nJWT\n```\n\nUtilizar credenciais nativas do n8n.\n\nSeparar:\n\n``` text\ndados de configuração\n```\n\nde:\n\n``` text\nsegredos\n```\n\nTambém não registrar tokens nos logs.\n\n------------------------------------------------------------------------\n\n# 24. Observabilidade\n\nA integração deve permitir responder:\n\n> O que aconteceu com a venda X?\n\nPara cada venda deve ser possível descobrir:\n\n``` text\nID Groner\n↓\ndata/hora\n↓\nstatus da integração\n↓\nID Conta Azul\n↓\nerro, se houver\n```\n\nExemplo:\n\n``` text\nGroner: 12345\nConta Azul: 98765\nStatus: SUCCESS\nData: 03/10/2026 15:30\n```\n\nOu:\n\n``` text\nGroner: 12346\nConta Azul: -\nStatus: ERROR\nErro: Produto não encontrado\n```\n\n------------------------------------------------------------------------\n\n# 25. Fluxo definitivo esperado\n\nA arquitetura final deverá ser aproximadamente:\n\n``` text\n                 ┌─────────────────────┐\n                 │ GRONER CRM          │\n                 │ Venda fechada       │\n                 └──────────┬──────────┘\n                            ↓\n                 ┌─────────────────────┐\n                 │ TRIGGER             │\n                 │ Webhook ou Schedule │\n                 └──────────┬──────────┘\n                            ↓\n                 ┌─────────────────────┐\n                 │ BUSCAR VENDA        │\n                 │ Dados completos     │\n                 └──────────┬──────────┘\n                            ↓\n                 ┌─────────────────────┐\n                 │ NORMALIZAR          │\n                 │ Dados internos      │\n                 └──────────┬──────────┘\n                            ↓\n                 ┌─────────────────────┐\n                 │ STATUS = FECHADA?   │\n                 └──────┬────────┬─────┘\n                        NÃO       SIM\n                         ↓         ↓\n                       IGNORA   DEDUPLICAR\n                                   ↓\n                         ┌──────────────────┐\n                         │ JÁ INTEGRADA?    │\n                         └──────┬─────┬─────┘\n                               SIM    NÃO\n                                ↓      ↓\n                              IGNORA  CONTINUA\n                                        ↓\n                              ┌─────────────────┐\n                              │ CLIENTE         │\n                              │ localizar/criar │\n                              └────────┬────────┘\n                                       ↓\n                              ┌─────────────────┐\n                              │ PRODUTOS        │\n                              │ localizar/mapear│\n                              └────────┬────────┘\n                                       ↓\n                              ┌─────────────────┐\n                              │ CRIAR VENDA     │\n                              │ CONTA AZUL      │\n                              └────────┬────────┘\n                                       ↓\n                              ┌─────────────────┐\n                              │ PARCELAS /      │\n                              │ FINANCEIRO      │\n                              └────────┬────────┘\n                                       ↓\n                              ┌─────────────────┐\n                              │ REGISTRAR       │\n                              │ VÍNCULO         │\n                              └────────┬────────┘\n                                       ↓\n                                  SUCESSO\n```\n\n------------------------------------------------------------------------\n\n# 26. O que NÃO deve ser feito\n\nA IA não deve:\n\n1.  Inventar campos da API.\n2.  Inventar endpoints.\n3.  Colocar tokens diretamente no workflow.\n4.  Considerar o JSON atual pronto para produção.\n5.  Criar vendas sem controle de duplicidade.\n6.  Criar parcelas sem validar a API financeira do Conta Azul.\n7.  Considerar nome do cliente como identificador único.\n8.  Considerar nome do produto como identificador único.\n9.  Fazer retry cego de POST de criação.\n10. Ativar todos os nodes antes de testar o payload real.\n11. Alterar dados financeiros sem preservar o valor original.\n12. Ignorar erros 4xx/5xx.\n13. Processar apenas a primeira página de resultados.\n14. Depender exclusivamente de uma janela pequena de consulta.\n15. Registrar tokens nos logs.\n\n------------------------------------------------------------------------\n\n# 27. Ordem recomendada de implementação\n\nA IA deve seguir esta ordem:\n\n## Etapa 1 --- Capturar venda real\n\nObter um JSON real retornado pelo Groner.\n\nNão continuar o mapeamento definitivo sem isso.\n\n## Etapa 2 --- Mapear Groner\n\nDescobrir exatamente:\n\n``` text\nID venda\nstatus\ndata\ncliente\ndocumento\nitens\nquantidade\nvalor\ntotal\nforma pagamento\nparcelas\nvencimentos\n```\n\n## Etapa 3 --- Testar Conta Azul\n\nConfigurar OAuth2.\n\nTestar consulta de clientes/produtos.\n\n## Etapa 4 --- Mapear cliente\n\nImplementar:\n\n``` text\nbuscar cliente\n↓\nencontrou?\n↓\nusar ID\n```\n\nou:\n\n``` text\nnão encontrou\n↓\ncriar\n↓\nusar ID\n```\n\n## Etapa 5 --- Mapear produtos\n\nImplementar o vínculo entre Groner e Conta Azul.\n\n## Etapa 6 --- Criar venda\n\nSomente depois dos passos anteriores.\n\n## Etapa 7 --- Financeiro\n\nImplementar parcelas/contas a receber.\n\n## Etapa 8 --- Idempotência\n\nPersistir:\n\n``` text\ngroner_sale_id\nconta_azul_sale_id\n```\n\n## Etapa 9 --- Erros\n\nCriar Error Workflow.\n\n## Etapa 10 --- Teste integrado\n\nUsar uma venda controlada.\n\n## Etapa 11 --- Produção\n\nSomente depois de validar:\n\n-   venda;\n-   cliente;\n-   produto;\n-   valor;\n-   parcelas;\n-   duplicidade;\n-   erros.\n\n------------------------------------------------------------------------\n\n# 28. Critérios de aceite\n\nA integração só pode ser considerada pronta quando:\n\n-   [ ] Uma venda fechada do Groner é encontrada.\n-   [ ] O ID da venda é preservado.\n-   [ ] O cliente correto é identificado.\n-   [ ] O cliente é criado caso a regra permita.\n-   [ ] Os produtos são corretamente relacionados.\n-   [ ] O valor total é preservado.\n-   [ ] A venda é criada no Conta Azul.\n-   [ ] As parcelas são corretamente registradas.\n-   [ ] A venda não é duplicada.\n-   [ ] Existe registro do ID Groner ↔ ID Conta Azul.\n-   [ ] Erros são registrados.\n-   [ ] Falhas de API são tratadas.\n-   [ ] Retries não geram duplicidade.\n-   [ ] Paginação funciona.\n-   [ ] Tokens não aparecem nos logs.\n-   [ ] A automação pode ser executada novamente sem gerar lançamento\n    duplicado.\n\n------------------------------------------------------------------------\n\n# 29. Resultado final esperado\n\nO usuário final não deve precisar executar nenhuma etapa manual.\n\nA experiência desejada é:\n\n``` text\nVENDA FECHADA NO GRONER\n        ↓\n     alguns segundos/minutos\n        ↓\nVENDA EXISTE NO CONTA AZUL\n        ↓\nFINANCEIRO/PARCELAS CORRETOS\n        ↓\nCLIENTE NÃO PRECISA DIGITAR NOVAMENTE\n```\n\nO usuário somente confere.\n\nO objetivo não é simplesmente \"mandar um JSON de uma API para outra\".\n\nO objetivo é criar uma integração confiável entre **CRM e ERP**, com:\n\n``` text\nautomação\n+\ntransformação\n+\nidempotência\n+\ncontrole financeiro\n+\nsegurança\n+\nobservabilidade\n+\ntratamento de erros\n```\n\n------------------------------------------------------------------------\n\n# 30. Estado do projeto neste momento\n\nO arquivo JSON fornecido junto desta especificação representa somente o\n**esqueleto inicial**.\n\nEle NÃO deve ser vendido ou apresentado como integração final.\n\nOs principais pontos ainda pendentes são:\n\n``` text\nTODO 1 — payload real do Groner\nTODO 2 — status exato de venda fechada\nTODO 3 — autenticação Groner\nTODO 4 — OAuth2 Conta Azul\nTODO 5 — consulta/criação de cliente\nTODO 6 — mapeamento de produtos\nTODO 7 — criação definitiva da venda\nTODO 8 — parcelas/financeiro\nTODO 9 — banco/armazenamento de idempotência\nTODO 10 — Error Workflow\nTODO 11 — paginação\nTODO 12 — estratégia de trigger\nTODO 13 — testes integrados\nTODO 14 — produção\n```\n\nA próxima IA que receber este documento deve **continuar a partir deste\nestado**, sem assumir que os TODOs já foram resolvidos.\n\nO princípio fundamental é:\n\n> Primeiro descobrir e validar os dados reais das APIs. Depois construir\n> o mapeamento. Depois testar uma venda. Somente então ativar a\n> automação em produção.\n",
+  "workflow_mvp": {
+    "name": "Groner → Conta Azul | MVP - Venda Fechada",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "1",
+        "name": "MANUAL - Teste",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          -900,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "cfg1",
+                "name": "groner_base_url",
+                "value": "https://SEU_TENANT.api.groner.app",
+                "type": "string"
+              },
+              {
+                "id": "cfg2",
+                "name": "groner_endpoint_vendas",
+                "value": "/api/Venda/DadosVendaPorPeriodo",
+                "type": "string"
+              },
+              {
+                "id": "cfg3",
+                "name": "conta_azul_base_url",
+                "value": "https://api-v2.contaazul.com",
+                "type": "string"
+              },
+              {
+                "id": "cfg4",
+                "name": "conta_azul_endpoint_venda",
+                "value": "/v1/venda",
+                "type": "string"
+              },
+              {
+                "id": "cfg5",
+                "name": "status_groner_fechada",
+                "value": "FECHADA",
+                "type": "string"
+              },
+              {
+                "id": "cfg6",
+                "name": "modo_teste",
+                "value": true,
+                "type": "boolean"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "2",
+        "name": "CONFIG - Preencher depois",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -680,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "url": "={{ $json.groner_base_url + $json.groner_endpoint_vendas }}",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "DataInicial",
+                "value": "={{ $now.minus({ days: 1 }).toFormat('yyyy-MM-dd') }}"
+              },
+              {
+                "name": "DataFinal",
+                "value": "={{ $now.toFormat('yyyy-MM-dd') }}"
+              },
+              {
+                "name": "PageNumber",
+                "value": "1"
+              },
+              {
+                "name": "PageSize",
+                "value": "100"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "3",
+        "name": "GRONER - Buscar vendas",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -430,
+          0
+        ],
+        "disabled": true,
+        "notesInFlow": true,
+        "notes": "DESATIVADO. Configurar Authorization e confirmar filtros exatos do endpoint."
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $input.all();\n\nreturn input.map(item => {\n  const v = item.json;\n  return { json: {\n    gronerRaw: v,\n    gronerSaleId: v.id ?? v.Id ?? null,\n    status: v.status ?? v.Status ?? v.statusVenda ?? null,\n    saleNumber: v.numero ?? v.Numero ?? null,\n    saleDate: v.dataVenda ?? v.DataVenda ?? null,\n    customer: {\n      name: v.cliente?.nome ?? v.Cliente?.Nome ?? null,\n      document: v.cliente?.documento ?? v.Cliente?.Documento ?? null,\n      email: v.cliente?.email ?? v.Cliente?.Email ?? null,\n      phone: v.cliente?.celular ?? v.Cliente?.Celular ?? null\n    },\n    total: v.valorTotal ?? v.ValorTotal ?? v.total ?? v.Total ?? null,\n    installments: v.parcelas ?? v.Parcelas ?? [],\n    items: v.itens ?? v.Itens ?? v.items ?? []\n  }};\n});"
+        },
+        "id": "4",
+        "name": "NORMALIZAR - Venda Groner",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -170,
+          0
+        ],
+        "disabled": true,
+        "notesInFlow": true,
+        "notes": "DESATIVADO até receber um JSON real do Groner."
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "if1",
+                "leftValue": "={{ $json.status }}",
+                "rightValue": "FECHADA",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "5",
+        "name": "IF - Venda fechada?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          80,
+          0
+        ],
+        "disabled": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const v = $json;\n\nreturn [{ json: {\n  ...v,\n  contaAzulPayload: {\n    id_cliente: \"TODO-CONTA-AZUL-CLIENTE-ID\",\n    numero: Number(v.saleNumber || 0),\n    situacao: \"APROVADO\",\n    data_venda: v.saleDate ? String(v.saleDate).slice(0, 10) : new Date().toISOString().slice(0, 10),\n    observacoes: `Origem: Groner | Venda: ${v.gronerSaleId}`,\n    itens: (v.items || []).map((item, index) => ({\n      descricao: item.descricao ?? item.nome ?? `Item ${index + 1}`,\n      quantidade: Number(item.quantidade ?? item.qtd ?? 1),\n      valor: Number(item.valor ?? item.valorUnitario ?? 0),\n      id: \"TODO-CONTA-AZUL-PRODUTO-ID\"\n    }))\n  }\n}}];"
+        },
+        "id": "6",
+        "name": "MAPEAR - Conta Azul",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          330,
+          0
+        ],
+        "disabled": true,
+        "notesInFlow": true,
+        "notes": "DESATIVADO. IDs de cliente/produto serão resolvidos depois."
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api-v2.contaazul.com/v1/venda",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{ JSON.stringify($json.contaAzulPayload) }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "7",
+        "name": "CONTA AZUL - Criar venda",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          590,
+          0
+        ],
+        "disabled": true,
+        "notesInFlow": true,
+        "notes": "DESATIVADO. Configurar OAuth2 antes de habilitar."
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "ok1",
+                "name": "integracao_status",
+                "value": "SUCESSO",
+                "type": "string"
+              },
+              {
+                "id": "ok2",
+                "name": "origem",
+                "value": "Groner",
+                "type": "string"
+              },
+              {
+                "id": "ok3",
+                "name": "destino",
+                "value": "Conta Azul",
+                "type": "string"
+              },
+              {
+                "id": "ok4",
+                "name": "mensagem",
+                "value": "Venda enviada para a Conta Azul. Depois adicionaremos ID e controle de duplicidade.",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "8",
+        "name": "SUCESSO - Registro",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          840,
+          0
+        ],
+        "disabled": true
+      }
+    ],
+    "connections": {
+      "MANUAL - Teste": {
+        "main": [
+          [
+            {
+              "node": "CONFIG - Preencher depois",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "CONFIG - Preencher depois": {
+        "main": [
+          [
+            {
+              "node": "GRONER - Buscar vendas",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GRONER - Buscar vendas": {
+        "main": [
+          [
+            {
+              "node": "NORMALIZAR - Venda Groner",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "NORMALIZAR - Venda Groner": {
+        "main": [
+          [
+            {
+              "node": "IF - Venda fechada?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF - Venda fechada?": {
+        "main": [
+          [
+            {
+              "node": "MAPEAR - Conta Azul",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "MAPEAR - Conta Azul": {
+        "main": [
+          [
+            {
+              "node": "CONTA AZUL - Criar venda",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "CONTA AZUL - Criar venda": {
+        "main": [
+          [
+            {
+              "node": "SUCESSO - Registro",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "pinData": {},
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "mvp-groner-contaazul-001",
+    "meta": {
+      "templateCredsSetupCompleted": false
+    },
+    "tags": []
+  },
+  "exemplo_pin_groner": {
+    "fonte": "Valores das secoes 7 e 12 da especificacao. Nomes de campo sao os que o Code node do JSON ja procura. Nao e resposta real da API.",
+    "json": {
+      "id": "12345",
+      "status": "FECHADA",
+      "numero": "987",
+      "dataVenda": "2026-10-03",
+      "cliente": {
+        "nome": "Cliente Exemplo",
+        "documento": "00000000000",
+        "email": "cliente@email.com",
+        "celular": "41999999999"
+      },
+      "valorTotal": 1500,
+      "parcelas": [],
+      "itens": [
+        {
+          "descricao": "Produto",
+          "quantidade": 1,
+          "valor": 1500
+        }
+      ]
+    }
+  }
+}
